@@ -278,6 +278,7 @@ erDiagram
   }
 ```
 
+- PostGIS `public`'e değil `extensions` şemasına kurulur: `create extension postgis with schema "extensions";`. Sonradan taşımak zor. `show search_path;` çıktısında `extensions` görünmeli, yoksa `geometry` türü bulunamaz.
 - Geometriler EPSG:4326'da saklanır. Alan `ST_Area(geom::geography)`, mesafe geography tipiyle hesaplanır.
 - GIST indeksleri: `binalar.geom`, `binalar.merkez`, `pvgis_izgara.nokta`, `trafo_merkezleri.nokta`, `osb_sinirlari.geom`.
 - `kayitlar` tablosunda satır düzeyinde güvenlik (RLS): `kullanici_id = auth.uid()` olan satırlar okunur, yazılır, silinir.
@@ -298,7 +299,7 @@ erDiagram
    JOIN osb_sinirlari o ON ST_Contains(o.geom, ST_PointOnSurface(h.geom))
    WHERE ST_Area(h.geom::geography) >= 1000;
    ```
-3. **Güneş verisi.** PVGIS'ten OSB'yi 0,01 derecelik ızgarayla kaplayan 30-40 noktada yıllık üretim (yatay panel, %14 kayıp) ve bir yıllık saatlik üretim çekilir. Her bina en yakın ızgara noktasının değerini alır (KNN, `<->`).
+3. **Güneş verisi.** PVGIS'ten OSB'yi 0,01 derecelik ızgarayla kaplayan 30-40 noktada yıllık üretim (yatay panel, %14 kayıp) ve bir yıllık saatlik üretim çekilir. Her bina en yakın ızgara noktasının değerini alır (KNN, `<->`). Saatlik veri `seriescalc` ucundan gelir: SARAH3, 2023 yılı, 8.760 saat, 1 kWp için watt cinsinden `P`. Zaman damgaları UTC'dir. PVGIS IP başına saniyede 30 isteğe izin verir.
 4. **Trafo ve mevcut paneller.** OSM'den trafo merkezleri (`power=substation`) ve güneş paneli etiketli alanlar (`generator:source=solar`) çekilir; panelli çatılar `mevcut_ges` ile işaretlenir.
 5. **Kontrol.** Bina sayısı ve toplam alan yazdırılır; bilinen 3 binanın alanı uydu ölçümüyle karşılaştırılır.
 
@@ -322,7 +323,7 @@ co2      = uretim ÷ 1000 × emisyon_faktoru                   tCO₂/yıl
 
 **Kontrol testi:** 1.000 kWp ve 1.340 kWh/kWp için 1.340 MWh/yıl üretim, 5,96 milyon TL/yıl tasarruf, 21,2 milyon TL yatırım, 3,6 yıl geri ödeme, 836 tCO₂/yıl.
 
-**Saatlik simülasyon.** PVGIS'in 8.760 saatlik üretimi kWp ile ölçeklenir. Tüketim profili tek vardiya (hafta içi 08-17), iki vardiya (06-22) ya da üç vardiyadır (7/24); yıllık tüketim saatlere dağıtılır. Her saat için öz tüketim, o saatin üretimi ile tüketiminden küçük olanıdır, fazlası şebekeye gider. 1 Mayıs 2026'dan beri mahsuplaşma saatlik olduğu için öz tüketim oranı bu simülasyondan gelir ve %80 varsayımının yerine geçer.
+**Saatlik simülasyon.** PVGIS'in 8.760 saatlik üretimi önce binanın yıllık `verim_kwh_kwp` değerine, sonra kWp'ye ölçeklenir; böylece simülasyon ile yıllık hesap aynı üretimi verir (2023 profilinin toplamı 1.312,9 kWh/kWp, çok yıllık ortalama 1.340). PVGIS saatleri UTC'dir: vardiya saatleriyle eşlemeden önce profil 3 saat ileri kaydırılır (en yüksek üretim 10:10 UTC, Türkiye saatiyle 13:10). Tüketim profili tek vardiya (hafta içi 08-17), iki vardiya (06-22) ya da üç vardiyadır (7/24); yıllık tüketim saatlere dağıtılır. Her saat için öz tüketim, o saatin üretimi ile tüketiminden küçük olanıdır, fazlası şebekeye gider. 1 Mayıs 2026'dan beri mahsuplaşma saatlik olduğu için öz tüketim oranı bu simülasyondan gelir ve %80 varsayımının yerine geçer.
 
 **Pil.** Kapasite (kWh) ve güç (kW) kaydırıcıyla seçilir. Fazla üretim pili şarj eder, üretimin yetmediği saatlerde pil boşalır; gidiş-dönüş verimi %90 kabul edilir. Pil maliyeti etkinlikte güncel bir kaynaktan girilir.
 
@@ -395,9 +396,9 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 
 ## 11. Güvenlik
 
-- **Anahtarlar sunucuda.** Gemini anahtarı ve veritabanı bağlantısı yalnızca backend ortam değişkenlerinde. Frontend'e yalnızca herkese açık olması tasarlanmış değerler gider (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`).
+- **Anahtarlar sunucuda.** Gemini anahtarı ve veritabanı bağlantısı yalnızca backend ortam değişkenlerinde. Frontend'e yalnızca herkese açık olması tasarlanmış değerler gider (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Entegrasyonun eklediği `SUPABASE_SECRET_KEY` RLS'yi aşar, frontend'e hiçbir zaman gitmez.
 - **Repoda sır yok.** `.env` dosyaları `.gitignore`'da; `.env.example` yalnızca değişken adlarını içerir. GitHub'da secret scanning ve push protection açık.
-- **Kimlik doğrulama.** Supabase Auth ile e-posta bağlantısı ya da tek kullanımlık kod. Backend korumalı uçlarda JWT'yi Supabase'in JWKS adresindeki imza anahtarlarıyla doğrular.
+- **Kimlik doğrulama.** Supabase Auth ile e-posta bağlantısı ya da tek kullanımlık kod. Backend korumalı uçlarda JWT'yi Supabase'in JWKS adresindeki imza anahtarlarıyla doğrular. Yeni projeler 1 Ekim 2025'ten beri ES256 ile imzalıyor. JWKS adresi `SUPABASE_URL` + `/auth/v1/.well-known/jwks.json`; anahtar token başlığındaki `kid` ile seçilir (örneğin PyJWT, `pyjwt[crypto]`). Başlıkta `alg` HS256 görünürse proje eski ortak anahtarla imzalıyordur, o zaman `SUPABASE_JWT_SECRET` ile doğrulanır.
 - **Yetkilendirme.** `kayitlar` tablosunda RLS: kullanıcı yalnızca kendi kayıtlarını görür ve siler. Roller: firma kullanıcısı ve OSB yöneticisi; yönetici yalnızca toplu sayıları görür.
 - **Rate limiting.** `/sohbet` ve `/uydu` için IP başına dakikada sınır (ör. 10 ve 5); diğer uçlarda daha geniş bir genel sınır.
 - **Girdi doğrulama.** Bütün girdiler Pydantic şemalarıyla ve aralıklarıyla doğrulanır (oranlar 0-1, tarife 0-20 TL gibi). Tüketim CSV'si en çok 1 MB ve 8.784 satır.
@@ -417,27 +418,30 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 - Toplu hesap 600 bina için milisaniyeler sürer; kaydırıcı istekleri 300 ms bekletilir.
 - Haritada Leaflet'in canvas çizicisi; düşük yakınlaştırmada çatı merkezleri kümelenebilir.
 - Uydu sonuçları ve tekrar eden asistan soruları önbellekte.
-- Serverless ortamda veritabanına Supabase'in havuzlu bağlantısıyla (connection pooler) bağlanılır.
+- Veritabanı bağlantısı: Vercel fonksiyonu Supabase'in işlem modu havuzunu kullanır (`POSTGRES_URL`, port 6543, IPv4). Bu modda hazır ifadeler (prepared statements) çalışmaz: psycopg 3'te `prepare_threshold=None`, asyncpg'de `statement_cache_size=0`; SQLAlchemy'de `NullPool`. `POSTGRES_URL` `postgres://` ile başlıyorsa kodda `postgresql+psycopg://` yapılır ve `sslmode` dışındaki parametreler atılır, çünkü libpq bilmediği parametreyi reddeder. Laptoptaki betikler ve migration'lar oturum modunu kullanır (port 5432, IPv4). Ücretsiz planda doğrudan bağlantı (`db.<ref>.supabase.co`) yalnızca IPv6 olduğu için kullanılmaz. Değerler etkinlik günü `vercel env pull` sonrası kontrol edilir.
 
 ---
 
 ## 13. Yayın ve ortamlar
 
 - **Vercel:** aynı repodan iki proje. `frontend/` kökli web projesi ve `backend/` kökli API projesi. Frontend `/api/v1` isteklerini API projesine yönlendirir (Next.js rewrites); böylece CORS ve adres karmaşası azalır.
-- **Veritabanı ve giriş:** Vercel Marketplace'ten Supabase (ücretsiz plan). Etkinlik günü `vercel integration discover` ile teyit edilir; ortam değişkenleri projelere otomatik eklenir.
+- **Veritabanı ve giriş:** Vercel Marketplace'ten Supabase (ücretsiz plan), web ve api projelerinin ikisine de bağlanır. Etkinlik günü `vercel integration discover` ile teyit edilir. Entegrasyonun eklediği değişkenler aşağıdaki tabloda "entegrasyon" diye işaretli; yerelde `vercel env pull` ile gelir.
 - **Dallar ve adresler:** her push bir önizleme adresi üretir; `main` dalı canlı yayındır.
 - **Yedek:** backend Docker imajı (Render ya da laptop), laptopta `uvicorn` + `cloudflared tunnel --url http://localhost:8000`, en son kayıtlı demo videosu.
 
-| Değişken | Nerede | Not |
-|---|---|---|
-| `GEMINI_API_KEY` | backend | gizli |
-| `DATABASE_URL` | backend | Supabase havuzlu bağlantı, gizli |
-| `SUPABASE_URL` | backend | |
-| `SUPABASE_JWKS_URL` | backend | JWT doğrulama |
-| `CORS_ORIGINS` | backend | frontend adresleri |
-| `NEXT_PUBLIC_SUPABASE_URL` | frontend | herkese açık |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | frontend | herkese açık, RLS ile korunur |
-| `API_BASE_URL` | frontend | rewrites hedefi |
+| Değişken | Nerede | Kim ekler | Not |
+|---|---|---|---|
+| `GEMINI_API_KEY` | backend | elle | gizli |
+| `POSTGRES_URL` | backend | entegrasyon | işlem modu havuzu (6543), gizli; biçimi Bölüm 12'de |
+| `POSTGRES_URL_NON_POOLING` | laptop: betikler, migration | entegrasyon | gizli; IPv4 oturum modu adresi (5432) olmalı, değere bakılır |
+| `SUPABASE_URL` | backend | entegrasyon | JWKS adresi buradan türetilir |
+| `SUPABASE_JWT_SECRET` | backend | entegrasyon | gizli; yalnızca token `alg` HS256 ise kullanılır |
+| `CORS_ORIGINS` | backend | elle | frontend adresleri |
+| `NEXT_PUBLIC_SUPABASE_URL` | frontend | entegrasyon | herkese açık |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | frontend | entegrasyon | herkese açık, RLS ile korunur |
+| `API_BASE_URL` | frontend | elle | rewrites hedefi |
+
+Entegrasyon ayrıca `POSTGRES_PRISMA_URL`, `POSTGRES_USER`, `POSTGRES_HOST`, `POSTGRES_PASSWORD`, `POSTGRES_DATABASE`, `SUPABASE_PUBLISHABLE_KEY` ve `SUPABASE_SECRET_KEY` ekler; kodda kullanılmazlar.
 
 ---
 
@@ -642,7 +646,7 @@ Ortak işaretlenen liste takım sayfasında: https://claude.ai/artifact/P8PMEj6M
 - [ ] Organizatörün cevabını gruba yaz (Mehmet)
 - [ ] EPDK'nın güncel sanayi tarifesine bak (Mehmet)
 - [ ] Gemini API anahtarı al, tek bir araç çağrısı dene (Nazım)
-- [ ] Vercel'e GitHub hesabıyla gir, Node.js ve Vercel CLI kur (Nazım)
+- [ ] Vercel'e GitHub hesabıyla gir, Node.js ve Vercel CLI kur; `vercel dev` için CLI en az 48.1.8 (Nazım)
 - [ ] Uydu katmanının kullanım şartlarına bak (Mahmut)
 - [ ] Laptoplara Python 3.12, Node.js, git, gh ve kod editörü (Antigravity) kurulu olsun (herkes)
 - [ ] İzin çıkarsa ham veriyi indir (Nazım)
