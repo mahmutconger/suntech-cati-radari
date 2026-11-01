@@ -1,0 +1,23 @@
+# Alan sahipleri. Birisi başkasının alanına dokunursa PR'a alanın sahibi otomatik eklenir.
+# Sonraki satır öncekini ezer: önce genel kurallar, sonra özel olanlar.
+# Mahmut ve Mehmet'in GitHub kullanıcı adları yazılınca ilgili satırların başındaki # kaldırılacak.
+
+# Nazım: kök dosyalar, backend, veri, altyapı
+*                                        @nazimhikmetsasi
+
+# Mahmut: frontend
+# /frontend/                             @MAHMUT_KULLANICI_ADI
+
+# Mehmet: hesap dilimi, simülasyon bileşenleri, varsayımlar sayfası, belgeler
+# /backend/app/domain/                   @MEHMET_KULLANICI_ADI
+# /backend/app/application/hesap/        @MEHMET_KULLANICI_ADI
+# /backend/app/api/v1/hesap.py           @MEHMET_KULLANICI_ADI
+# /backend/app/schemas/hesap.py          @MEHMET_KULLANICI_ADI
+# /backend/tests/domain/                 @MEHMET_KULLANICI_ADI
+# /frontend/src/components/simulasyon/   @MEHMET_KULLANICI_ADI
+# /frontend/src/app/varsayimlar/         @MEHMET_KULLANICI_ADI
+# /docs/                                 @MEHMET_KULLANICI_ADI
+
+# Ortak kurallar Nazım'da kalır
+/PROJE.md                                @nazimhikmetsasi
+/.github/                                @nazimhikmetsasi

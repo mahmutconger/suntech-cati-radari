@@ -218,3 +218,26 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- SunTech eklemeleri ---
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel/
+
+# Ortam dosyaları: gerçek değerler repoya girmez, yalnızca .env.example girer
+.env
+.env.*
+!.env.example
+
+# Ham veri (Overpass ve PVGIS yanıtları)
+data/raw/
+
+# İşletim sistemi
+.DS_Store
+Thumbs.db
