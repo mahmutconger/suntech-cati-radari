@@ -2,7 +2,7 @@
 
 **SunTech** takımının "COP31'e Manisa'dan Çözümler: Sanayi ve Kampüslerde Yeşil Dönüşüm Hackathonu" projesi. Manisa OSB'deki büyük çatılar için bina bazında güneş enerjisi ve yatırım ön analizi yapan bir web uygulaması.
 
-Bu dosya projenin tek kaynağıdır: ne yaptığımız, nasıl kurduğumuz, kimin neyi yaptığı ve hangi rakamı nereden aldığımız burada. Saatli ve çakışmasız görev sırası ayrıca [docs/SunTech-Gorev-Plani.pdf](docs/SunTech-Gorev-Plani.pdf) dosyasında.
+Bu dosya projenin tek kaynağıdır: ne yaptığımız, nasıl kurduğumuz, kimin neyi yaptığı ve hangi rakamı nereden aldığımız burada. Ekip için özet, mimari ve kişi kişi saatli görev sırası ayrıca [docs/SunTech-Gorev-Plani.pdf](docs/SunTech-Gorev-Plani.pdf) dosyasında.
 
 > **Durum, 1 Kasım 2026:** Başvuru gönderildi, ön eleme sonucu 2 Kasım'da. Organizatör etkinlikten önce kod yazmanın serbest olup olmadığını henüz cevaplamadı. Bu yüzden repoda yalnızca belge ve ayar dosyaları var. Uygulama kodu 3 Kasım 10:00'da yazılmaya başlanacak.
 
@@ -27,7 +27,7 @@ Bu dosya projenin tek kaynağıdır: ne yaptığımız, nasıl kurduğumuz, kimi
 
 | Kişi | Rol | Sahip olduğu alanlar |
 |---|---|---|
-| Nazım | Backend, veri, altyapı, güvenlik | `backend/` (hesap dilimi hariç), `db/`, `scripts/`, yayın, repo ayarları, kök dosyalar |
+| Nazım | Takım lideri; backend, veri, altyapı, güvenlik | `backend/` (hesap dilimi hariç), `db/`, `scripts/`, yayın, repo ayarları, kök dosyalar |
 | Mahmut | Frontend | `frontend/` (iki klasör hariç), PWA, QR kod |
 | Mehmet | Hesap motoru ve sunum | Hesap dilimi: `backend/app/domain/`, `backend/app/application/hesap/`, `backend/app/api/v1/hesap.py`, `backend/app/schemas/hesap.py`, `backend/tests/domain/`. Ayrıca `frontend/src/components/simulasyon/`, `frontend/src/app/varsayimlar/`, `docs/` |
 
@@ -64,7 +64,7 @@ Jüri ağırlıkları: yenilikçilik %20, teknik uygulanabilirlik %20, yeşil d�
 
 ### 4.2 Ek özellikler (19:00'dan sonra)
 
-- **Üyelik, giriş, veritabanı:** firma e-posta bağlantısıyla girer, analizini ve tüketimini kaydeder, "Kayıtlarım"da görür.
+- **Üyelik, giriş, veritabanı:** firma e-posta ve şifreyle kaydolup girer, analizini ve tüketimini kaydeder, "Kayıtlarım"da görür.
 - **Uydu görüntüsünden panel tespiti:** çatı kartındaki düğmeyle Gemini çatının uydu görüntüsüne bakar: panel var mı, çatının ne kadarını kaplıyor. 10 çatıda elle doğruluk ölçümü yapılır.
 - **Saatlik simülasyon ve pil:** PVGIS'in saatlik üretimi; tek, iki ya da üç vardiya tüketim profili; saatlik mahsuplaşma; pil kapasitesi.
 - **Şebeke ve trafo:** "şebekeye vermeden" seçeneği; OSM'deki trafo merkezleri haritada, kalan kapasite elle girilir.
@@ -78,14 +78,14 @@ Jüri ağırlıkları: yenilikçilik %20, teknik uygulanabilirlik %20, yeşil d�
 
 ### 4.4 Kapsam dışı (yol haritası slaydına)
 
-Sayaç verisiyle gerçek tüketim profili, bankalarla entegrasyon, uydu tespitini bütün çatılara yaymak, trafo kapasitesini resmî kaynaktan otomatik almak, mağaza uygulaması.
+Sayaç verisiyle gerçek tüketim profili, bankalarla entegrasyon, uydu tespitini bütün çatılara yaymak, trafo kapasitesini resmî kaynaktan otomatik almak, mağaza uygulaması, şifre sıfırlama ve e-posta doğrulaması.
 
 ### 4.5 Gerideysek sadeleştirme sırası (00:00 kontrolünde)
 
 1. Mobil: yalnızca "ana ekrana ekle", çevrimdışı çalışma yok.
 2. Şebeke: yalnızca "şebekeye vermeden" hesabı, trafo verisi yok.
 3. Uydu tespiti: yalnızca önceden çalıştırılmış 10 çatı.
-4. Giriş: e-posta yerine tek tıkla "bağlantıyla kaydet".
+4. Giriş: hesap açmak yerine tek tıkla "bağlantıyla kaydet".
 5. Pil: saatlik simülasyon kalır, pil çıkar.
 
 Çekirdek hiçbir zaman kesilmez.
@@ -100,8 +100,7 @@ Sayaç verisiyle gerçek tüketim profili, bankalarla entegrasyon, uydu tespitin
 flowchart LR
   K["Kullanıcı<br/>tarayıcı veya telefon"] --> W["Frontend<br/>Next.js, Vercel"]
   W -- "REST /api/v1" --> A["Backend<br/>FastAPI, Vercel"]
-  W -- "Giriş" --> SA["Supabase Auth"]
-  A --> DB[("PostgreSQL + PostGIS<br/>Supabase")]
+  A --> DB[("PostgreSQL + PostGIS<br/>Neon")]
   A --> GM["Gemini API"]
   A --> UY["Uydu karoları"]
   OSM["OpenStreetMap Overpass"] --> VY["scripts/<br/>veri yükleme"]
@@ -114,9 +113,9 @@ flowchart LR
 | Katman | Seçim | Neden |
 |---|---|---|
 | Backend | Python 3.12, FastAPI, Pydantic v2 | Takımın backend dili; OpenAPI şemasını kendisi üretir |
-| Veritabanı | PostgreSQL + PostGIS (Supabase, Vercel Marketplace, ücretsiz plan) | Mekânsal sorgular veritabanında, GIST indeksleri |
+| Veritabanı | PostgreSQL + PostGIS (Neon, Vercel Marketplace, ücretsiz plan) | Mekânsal sorgular veritabanında, GIST indeksleri; Neon yalnızca veritabanı verir, giriş ve API bizde |
 | ORM | SQLAlchemy 2 + GeoAlchemy2 | PostGIS fonksiyonlarını Python'dan çağırmak |
-| Giriş | Supabase Auth (e-posta bağlantısı ya da tek kullanımlık kod, JWT) | Ayrı giriş sunucusu gerekmez |
+| Giriş | Kendi sistemimiz: e-posta ve şifre, argon2 ile hash, backend'in imzaladığı JWT | E-posta gönderilmez, demoda kayıt anında olur; dış bağımlılık yok |
 | Frontend | Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui | Mimari prompttaki yığın |
 | Veri ve durum | TanStack Query (sunucu verisi), Zustand (arayüz durumu) | İkisi ayrı tutulur |
 | Harita | Leaflet + react-leaflet; OpenStreetMap ve Esri World Imagery katmanları | Ücretsiz, kart gerekmez |
@@ -147,6 +146,7 @@ Bilinçli farklar:
 - **ASP.NET Core yerine Python FastAPI:** takımın backend dili Python ve 24 saatte aynı mimari Python'da daha hızlı kurulur. Mimari kurallar aynen geçerli.
 - **MediatR yerine düz use case sınıfları:** Python'da karşılığı gereksiz bir katman olurdu.
 - **Google Maps yerine Leaflet:** Google Maps faturalandırma hesabı ve kart istiyor. Uydu görüntüsünü yapay zekâyla analiz etmek de Google'ın kullanım şartlarına takılabilir.
+- **Hazır giriş servisi yerine kendi giriş sistemimiz:** e-posta gönderimi ve yönlendirme ayarı gerekmez, jüri demoda anında kayıt olur. Şifre sıfırlama ve e-posta doğrulaması yol haritasında.
 - **Kampüs modülleri yok:** kat planı, ders programı, ring servisi gibi modüller bu projeye ait değil.
 
 ### 5.4 Backend katmanları
@@ -158,8 +158,8 @@ infrastructure (PostGIS, Gemini, PVGIS, uydu) ── portları uygular
 ```
 
 - **domain:** dış bağımlılığı olmayan saf Python. Varlıklar (`Bina`, `Varsayimlar`, `HesapSonucu`) ve hesap fonksiyonları. Veritabanını, HTTP'yi ya da Gemini'yi bilmez. Birim testleri burada.
-- **application:** use case'ler. Her özellik kendi klasöründe; `sorgular.py` ve `komutlar.py` ayrı. Dış dünyaya portlar (`typing.Protocol`) üzerinden erişir: `BinaDeposu`, `KayitDeposu`, `UyduIstemcisi`, `DilModeli`.
-- **infrastructure:** portların gerçek uygulamaları. PostGIS depoları (SQLAlchemy + GeoAlchemy2); Gemini, PVGIS, Overpass ve uydu karosu istemcileri; Supabase JWT doğrulaması.
+- **application:** use case'ler. Her özellik kendi klasöründe; `sorgular.py` ve `komutlar.py` ayrı. Dış dünyaya portlar (`typing.Protocol`) üzerinden erişir: `BinaDeposu`, `KayitDeposu`, `KullaniciDeposu`, `UyduIstemcisi`, `DilModeli`.
+- **infrastructure:** portların gerçek uygulamaları. PostGIS depoları (SQLAlchemy + GeoAlchemy2); Gemini, PVGIS, Overpass ve uydu karosu istemcileri; şifre hash'leme (argon2), JWT üretme ve doğrulama.
 - **api:** FastAPI router'ları. Girdiyi DTO ile doğrular, use case'i çağırır, `Sonuc`'u HTTP yanıtına çevirir. İş mantığı içermez.
 - **schemas:** Pydantic DTO'ları. Özellik başına bir dosya; böylece iki kişi aynı dosyaya yazmaz.
 
@@ -181,6 +181,7 @@ class Sonuc(Generic[T]):
 - **Harita:** Leaflet sunucu tarafında çalışmadığı için harita bileşeni yalnızca istemcide yüklenir (`dynamic(..., { ssr: false })`). Leaflet'in canvas çizicisi kullanılır.
 - **Durum:** sunucu verisi TanStack Query'de, seçili bina ve kaydırıcı değerleri Zustand'da.
 - **Kaydırıcılar:** değişiklik 300 ms bekletilir (debounce), sonra `/hesap/toplu` çağrılır.
+- **Giriş:** form backend'in `/auth/kayit` ve `/auth/giris` uçlarına gider; dönen token korumalı isteklerde `Authorization` başlığına eklenir. Supabase istemcisi kullanılmaz.
 - **Tipler:** `npm run tipler` komutu backend'in OpenAPI şemasından `src/types/api.ts` dosyasını üretir. Bu dosya elle değiştirilmez.
 
 ### 5.6 Klasör yapısı ve sahiplik
@@ -197,13 +198,13 @@ suntech-cati-radari/
 │  ├─ app/main.py, app/core/ ............................ Nazım
 │  ├─ app/domain/ ....................................... Mehmet
 │  ├─ app/application/hesap/ ............................ Mehmet
-│  ├─ app/application/bina, sohbet, uydu, kayit/ ........ Nazım
+│  ├─ app/application/bina, sohbet, uydu, kayit, auth/ .. Nazım
 │  ├─ app/application/portlar.py, sonuc.py .............. Nazım
 │  ├─ app/infrastructure/ ............................... Nazım
 │  ├─ app/api/v1/hesap.py ............................... Mehmet
-│  ├─ app/api/v1/binalar, sohbet, uydu, kayitlar, trafo . Nazım
+│  ├─ app/api/v1/binalar, sohbet, uydu, kayitlar, trafo, auth . Nazım
 │  ├─ app/schemas/hesap.py .............................. Mehmet
-│  ├─ app/schemas/bina, sohbet, uydu, kayit, ortak ...... Nazım
+│  ├─ app/schemas/bina, sohbet, uydu, kayit, auth, ortak . Nazım
 │  ├─ tests/domain/ ..................................... Mehmet
 │  └─ tests/api/ ........................................ Nazım
 └─ frontend/
@@ -227,6 +228,7 @@ erDiagram
   PVGIS_IZGARA ||--o{ BINALAR : verim
   BINALAR ||--o{ KAYITLAR : analiz
   BINALAR ||--o| UYDU_SONUCLARI : tespit
+  KULLANICILAR ||--o{ KAYITLAR : sahip
   OSB_SINIRLARI {
     int id PK
     bigint osm_id
@@ -259,9 +261,15 @@ erDiagram
     numeric kalan_kapasite_mw
     text kaynak
   }
+  KULLANICILAR {
+    uuid id PK
+    text eposta "benzersiz"
+    text sifre_ozeti "argon2"
+    timestamptz olusturma
+  }
   KAYITLAR {
     uuid id PK
-    uuid kullanici_id "auth.users"
+    uuid kullanici_id FK
     int bina_id FK
     jsonb varsayimlar
     jsonb tuketim
@@ -278,10 +286,11 @@ erDiagram
   }
 ```
 
-- PostGIS `public`'e değil `extensions` şemasına kurulur: `create extension postgis with schema "extensions";`. Sonradan taşımak zor. `show search_path;` çıktısında `extensions` görünmeli, yoksa `geometry` türü bulunamaz.
+- PostGIS ilk migration'da açılır: `CREATE EXTENSION IF NOT EXISTS postgis;`.
 - Geometriler EPSG:4326'da saklanır. Alan `ST_Area(geom::geography)`, mesafe geography tipiyle hesaplanır.
 - GIST indeksleri: `binalar.geom`, `binalar.merkez`, `pvgis_izgara.nokta`, `trafo_merkezleri.nokta`, `osb_sinirlari.geom`.
-- `kayitlar` tablosunda satır düzeyinde güvenlik (RLS): `kullanici_id = auth.uid()` olan satırlar okunur, yazılır, silinir.
+- Yetki backend'de: `/kayitlar` uçları yalnızca token'daki kullanıcının satırlarını okur, yazar, siler. Veritabanı kuralı (RLS) kullanılmaz, çünkü backend veritabanına tek bir hesapla bağlanıyor.
+- `kullanicilar.eposta` benzersizdir. Şifrenin kendisi değil, yalnızca argon2 hash'i saklanır.
 - Varsayılan değerler ve kaynakları kodda tutulur (`backend/app/domain/varsayilanlar.py`), veritabanında değil.
 
 ---
@@ -356,6 +365,9 @@ Taban adres `/api/v1`. Bütün yanıtlar JSON. Hata biçimi: `{"hata": {"kod": "
 | POST | `/sohbet` | cevap ve kullanılan araçlar | Nazım | rate limit |
 | POST | `/uydu/{bina_id}` | `UyduSonucu` | Nazım | önbellekli, rate limit |
 | GET | `/trafo-merkezleri` | GeoJSON | Nazım | |
+| POST | `/auth/kayit` | token | Nazım | e-posta ve şifre; rate limit |
+| POST | `/auth/giris` | token | Nazım | rate limit |
+| GET | `/auth/ben` | kullanıcı bilgisi | Nazım | JWT zorunlu |
 | GET, POST, DELETE | `/kayitlar` | kayıtlar | Nazım | JWT zorunlu |
 
 Ana DTO'lar (alan adları 3 Kasım 10:30 hizalamasında kesinleşir):
@@ -396,15 +408,15 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 
 ## 11. Güvenlik
 
-- **Anahtarlar sunucuda.** Gemini anahtarı ve veritabanı bağlantısı yalnızca backend ortam değişkenlerinde. Frontend'e yalnızca herkese açık olması tasarlanmış değerler gider (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Entegrasyonun eklediği `SUPABASE_SECRET_KEY` RLS'yi aşar, frontend'e hiçbir zaman gitmez.
+- **Anahtarlar sunucuda.** Gemini anahtarı, veritabanı bağlantısı ve JWT imza anahtarı (`JWT_GIZLI`) yalnızca backend ortam değişkenlerinde. Frontend'e gizli değer gitmez; frontend yalnızca kendi API'mizle konuşur, veritabanına doğrudan bağlanmaz.
 - **Repoda sır yok.** `.env` dosyaları `.gitignore`'da; `.env.example` yalnızca değişken adlarını içerir. GitHub'da secret scanning ve push protection açık.
-- **Kimlik doğrulama.** Supabase Auth ile e-posta bağlantısı ya da tek kullanımlık kod. Backend korumalı uçlarda JWT'yi Supabase'in JWKS adresindeki imza anahtarlarıyla doğrular. Yeni projeler 1 Ekim 2025'ten beri ES256 ile imzalıyor. JWKS adresi `SUPABASE_URL` + `/auth/v1/.well-known/jwks.json`; anahtar token başlığındaki `kid` ile seçilir (örneğin PyJWT, `pyjwt[crypto]`). Başlıkta `alg` HS256 görünürse proje eski ortak anahtarla imzalıyordur, o zaman `SUPABASE_JWT_SECRET` ile doğrulanır.
-- **Yetkilendirme.** `kayitlar` tablosunda RLS: kullanıcı yalnızca kendi kayıtlarını görür ve siler. Roller: firma kullanıcısı ve OSB yöneticisi; yönetici yalnızca toplu sayıları görür.
-- **Rate limiting.** `/sohbet` ve `/uydu` için IP başına dakikada sınır (ör. 10 ve 5); diğer uçlarda daha geniş bir genel sınır.
+- **Kimlik doğrulama.** Kendi sistemimiz: e-posta ve şifre. Şifreler argon2 ile hash'lenir (`argon2-cffi`); şifrenin kendisi hiçbir yerde saklanmaz, günlüğe yazılmaz. Girişte backend `JWT_GIZLI` ile imzalı bir JWT döner (HS256, örneğin 24 saat geçerli); frontend korumalı isteklerde `Authorization: Bearer <token>` gönderir. Şifre sıfırlama ve e-posta doğrulaması yok, yol haritasında.
+- **Yetkilendirme.** Backend her kayıt sorgusunu token'daki kullanıcı kimliğiyle süzer; kullanıcı yalnızca kendi kayıtlarını görür ve siler. Roller: firma kullanıcısı ve OSB yöneticisi; yönetici yalnızca toplu sayıları görür.
+- **Rate limiting.** `/sohbet` ve `/uydu` için IP başına dakikada sınır (ör. 10 ve 5); `/auth/giris` ve `/auth/kayit` için şifre denemelerine karşı sıkı sınır (ör. dakikada 5); diğer uçlarda daha geniş bir genel sınır.
 - **Girdi doğrulama.** Bütün girdiler Pydantic şemalarıyla ve aralıklarıyla doğrulanır (oranlar 0-1, tarife 0-20 TL gibi). Tüketim CSV'si en çok 1 MB ve 8.784 satır.
 - **CORS.** Yalnızca frontend'in alan adları.
 - **Yapay zekâ güvenliği.** Asistanın araçları salt okunur, veritabanına yazamaz. Kullanıcı mesajı ve araç çıktıları talimat olarak değil veri olarak ele alınır. Cevap uzunluğu sınırlı.
-- **Kişisel veri.** Kayıtlarda yalnızca kullanıcı kimliği ve analiz verisi tutulur. Asistana yazılanların Google'a gittiği ekranda yazar ("Firma sırrı yazmayın").
+- **Kişisel veri.** Kullanıcı tablosunda yalnızca e-posta ve şifre hash'i, kayıtlarda kullanıcı kimliği ve analiz verisi tutulur. Asistana yazılanların Google'a gittiği ekranda yazar ("Firma sırrı yazmayın").
 - **Hata mesajları.** İstemciye iç ayrıntı (yığın izi, SQL) gönderilmez; ayrıntı sunucu günlüğünde kalır.
 - **Bağımlılıklar.** Sürümler kilit dosyalarıyla sabitlenir.
 - **Dağıtım.** HTTPS Vercel'de hazır. Yedek dağıtım için backend Docker imajı.
@@ -418,30 +430,27 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 - Toplu hesap 600 bina için milisaniyeler sürer; kaydırıcı istekleri 300 ms bekletilir.
 - Haritada Leaflet'in canvas çizicisi; düşük yakınlaştırmada çatı merkezleri kümelenebilir.
 - Uydu sonuçları ve tekrar eden asistan soruları önbellekte.
-- Veritabanı bağlantısı: Vercel fonksiyonu Supabase'in işlem modu havuzunu kullanır (`POSTGRES_URL`, port 6543, IPv4). Bu modda hazır ifadeler (prepared statements) çalışmaz: psycopg 3'te `prepare_threshold=None`, asyncpg'de `statement_cache_size=0`; SQLAlchemy'de `NullPool`. `POSTGRES_URL` `postgres://` ile başlıyorsa kodda `postgresql+psycopg://` yapılır ve `sslmode` dışındaki parametreler atılır, çünkü libpq bilmediği parametreyi reddeder. Laptoptaki betikler ve migration'lar oturum modunu kullanır (port 5432, IPv4). Ücretsiz planda doğrudan bağlantı (`db.<ref>.supabase.co`) yalnızca IPv6 olduğu için kullanılmaz. Değerler etkinlik günü `vercel env pull` sonrası kontrol edilir.
+- Veritabanı bağlantısı: Vercel fonksiyonu Neon'un havuzlu adresini kullanır (`DATABASE_URL`, adreste `-pooler`, PgBouncer işlem modu); SQLAlchemy'de `NullPool`. Bu modda sürücünün hazır ifadeleri çalışır; SQL düzeyinde `PREPARE`, oturum `SET`'leri ve `LISTEN` çalışmaz. Migration'lar ve laptoptaki betikler doğrudan adresi kullanır (`DATABASE_URL_UNPOOLED`). Adres `postgres://` ya da `postgresql://` ile başlar; SQLAlchemy psycopg 3 için `postgresql+psycopg://` ister, kodda çevrilir. Neon boştayken uyuyabilir; demodan önce bir istek atılır. Değerler etkinlik günü `vercel env pull` sonrası kontrol edilir.
 
 ---
 
 ## 13. Yayın ve ortamlar
 
 - **Vercel:** aynı repodan iki proje. `frontend/` kökli web projesi ve `backend/` kökli API projesi. Frontend `/api/v1` isteklerini API projesine yönlendirir (Next.js rewrites); böylece CORS ve adres karmaşası azalır.
-- **Veritabanı ve giriş:** Vercel Marketplace'ten Supabase (ücretsiz plan), web ve api projelerinin ikisine de bağlanır. Etkinlik günü `vercel integration discover` ile teyit edilir. Entegrasyonun eklediği değişkenler aşağıdaki tabloda "entegrasyon" diye işaretli; yerelde `vercel env pull` ile gelir.
+- **Veritabanı:** Vercel Marketplace'ten Neon (ücretsiz plan). Storage → Connect Project ile yalnızca api projesine bağlanır; frontend veritabanına bağlanmaz. Önizleme dağıtımları için veritabanı dalı açma seçeneği kapalı kalır. Etkinlik günü `vercel integration discover` ile teyit edilir. Entegrasyonun eklediği değişkenler aşağıdaki tabloda "entegrasyon" diye işaretli; yerelde `vercel env pull` ile gelir.
 - **Dallar ve adresler:** her push bir önizleme adresi üretir; `main` dalı canlı yayındır.
 - **Yedek:** backend Docker imajı (Render ya da laptop), laptopta `uvicorn` + `cloudflared tunnel --url http://localhost:8000`, en son kayıtlı demo videosu.
 
 | Değişken | Nerede | Kim ekler | Not |
 |---|---|---|---|
 | `GEMINI_API_KEY` | backend | elle | gizli |
-| `POSTGRES_URL` | backend | entegrasyon | işlem modu havuzu (6543), gizli; biçimi Bölüm 12'de |
-| `POSTGRES_URL_NON_POOLING` | laptop: betikler, migration | entegrasyon | gizli; IPv4 oturum modu adresi (5432) olmalı, değere bakılır |
-| `SUPABASE_URL` | backend | entegrasyon | JWKS adresi buradan türetilir |
-| `SUPABASE_JWT_SECRET` | backend | entegrasyon | gizli; yalnızca token `alg` HS256 ise kullanılır |
+| `DATABASE_URL` | backend | entegrasyon | Neon havuzlu adres, gizli; biçimi Bölüm 12'de |
+| `DATABASE_URL_UNPOOLED` | laptop: betikler, migration | entegrasyon | Neon doğrudan adres, gizli |
+| `JWT_GIZLI` | backend | elle | giriş token'larını imzalar; uzun ve rastgele, gizli |
 | `CORS_ORIGINS` | backend | elle | frontend adresleri |
-| `NEXT_PUBLIC_SUPABASE_URL` | frontend | entegrasyon | herkese açık |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | frontend | entegrasyon | herkese açık, RLS ile korunur |
 | `API_BASE_URL` | frontend | elle | rewrites hedefi |
 
-Entegrasyon ayrıca `POSTGRES_PRISMA_URL`, `POSTGRES_USER`, `POSTGRES_HOST`, `POSTGRES_PASSWORD`, `POSTGRES_DATABASE`, `SUPABASE_PUBLISHABLE_KEY` ve `SUPABASE_SECRET_KEY` ekler; kodda kullanılmazlar.
+Entegrasyon ayrıca `PGHOST`, `PGHOST_UNPOOLED`, `PGUSER`, `PGDATABASE`, `PGPASSWORD` ve eski şablonlar için `POSTGRES_*` değişkenlerini ekler; kodda kullanılmazlar.
 
 ---
 
@@ -451,7 +460,7 @@ Entegrasyon ayrıca `POSTGRES_PRISMA_URL`, `POSTGRES_USER`, `POSTGRES_HOST`, `PO
 
 **Sahiplik.** Herkes yalnızca Bölüm 5.6'daki kendi klasörlerinde değişiklik yapar. `.github/CODEOWNERS` dosyası, birisi başkasının alanına dokunursa PR'a alan sahibini otomatik ekler (Mahmut'un ve Mehmet'in GitHub kullanıcı adları eklenince tam çalışır).
 
-**Birleştirme saatleri.** 12:30, 15:00, 18:00, 22:00, 00:00, 04:30, 07:15. Sıra her seferinde Nazım, Mehmet, Mahmut. Her birleştirmeden sonra herkes `main`'i kendi dalına çeker. Backend değiştiyse Mahmut tipleri yeniden üretir.
+**Birleştirme saatleri.** 12:30, 15:00, 18:00, 22:00, 00:00, 04:30, 07:15. Sıra her seferinde Nazım, Mehmet, Mahmut. Herkes kendi PR'ını açar; Nazım kontrol edip birleştirir. Her birleştirmeden sonra herkes `main`'i kendi dalına çeker. Backend değiştiyse Mahmut tipleri yeniden üretir.
 
 **Birleştirme yöntemi.** "Create a merge commit". Squash ve rebase kapalı: kişisel dallar etkinlik boyunca yaşıyor, squash sonrası aynı dalda devam etmek çakışma üretir.
 
@@ -471,7 +480,7 @@ git push
 
 # Birleştirme saatinde (ya da GitHub sitesinden)
 gh pr create --base main --head nazim --fill
-gh pr merge --merge
+gh pr merge --merge         # Nazım kontrol edip birleştirir
 git pull origin main        # main'deki yenilikleri kendi dalına al
 ```
 
@@ -502,14 +511,14 @@ Ortak saatler: 09:15 kayıt ve Wi-Fi testi · 10:30 hizalama (DTO alanları, uç
 
 | Saat | Nazım | Mahmut | Mehmet |
 |---|---|---|---|
-| 10:00 | Supabase kurulumu, backend iskeleti | Next.js kurulumu | domain varlıkları, varsayılanlar |
+| 10:00 | Neon kurulumu, backend iskeleti | Next.js kurulumu | domain varlıkları, varsayılanlar |
 | 10:45 | veri hattı, `/binalar` | harita, sahte veri | yıllık hesap ve testler, yer tutucular |
 | 12:30 | birleştirme 1 | birleştirme 1 | birleştirme 1 |
 | 13:45 | PVGIS, trafo, bina uçları | tipler, gerçek veri, çatı kartı | hesap use case'leri, `/hesap` uçları |
 | 15:00 | birleştirme 2 | birleştirme 2 | birleştirme 2 |
 | 15:15 | asistan, rate limit | kaydırıcılar, OSB paneli, arama | saatlik simülasyon, pil |
 | 18:00 | birleştirme 3 | birleştirme 3 | birleştirme 3 |
-| 19:15 | giriş, kayıtlar, RLS | sohbet kutusu, giriş ekranı | kredi, statik, şebeke hesapları |
+| 19:15 | giriş (kayıt ve giriş uçları), kayıtlar | sohbet kutusu, giriş ekranı | kredi, statik, şebeke hesapları |
 | 22:00 | birleştirme 4, uydu tespiti | uydu düğmesi, trafo katmanı | simülasyon bileşenleri, varsayımlar sayfası |
 | 00:00 | birleştirme 5 | birleştirme 5 | birleştirme 5, 10 çatı elle kontrol |
 | 00:30 | hatalar, demo önbelleği | telefon görünümü | uyku |
@@ -623,7 +632,8 @@ Mehmet anlatır, Mahmut ekranı kullanır, Nazım teknik soruları alır. İnter
 | Overpass meşgul | Ayna sunucular; ham yanıt kaydedilir, tekrar çekilmez |
 | Gemini kotası biter | Sahte cevapla geliştirme, önbellek, faturalandırma sigortası, yedek video |
 | Vercel'de Python sorunu | Docker imajı ile Render ya da laptop + cloudflared |
-| Supabase kurulumu gecikir | Giriş "bağlantıyla kaydet"e sadeleşir |
+| Veritabanı kurulumu gecikir | Laptopta Docker'da PostGIS; backend laptopta uvicorn + cloudflared ile yayınlanır |
+| Giriş yetişmez | "Bağlantıyla kaydet"e sadeleşir |
 | Uydu katmanının kullanım şartı uygun değil | Uydu tespiti yalnızca önceden hazırlanmış örnekle gösterilir ya da çıkarılır |
 | Wi-Fi yok | Telefon interneti |
 | Yorgunluk | İkişer saat uyku nöbeti, 07:30 kod dondurma |
@@ -673,6 +683,8 @@ Ortak işaretlenen liste takım sayfasında: https://claude.ai/artifact/P8PMEj6M
 - Ticari binalarda PV potansiyeli (KFUPM): https://pure.kfupm.edu.sa/en/publications/assessment-of-solar-pv-potential-in-commercial-buildings/
 - Manisa Enerji ve Akbank protokolü: https://www.manisa.bel.tr/Haberler/45822_manisa-enerji-ve-akbanktan-cati-ges-yatirimlari-ic.aspx
 - Gemini API kotaları: https://ai.google.dev/gemini-api/docs/rate-limits
+- Neon ve Vercel entegrasyonu: https://neon.com/docs/guides/vercel-managed-integration
+- Neon bağlantı havuzu: https://neon.com/docs/connect/connection-pooling
 - Vercel Hobby planında özel repo ve takım arkadaşı commit'leri: https://community.vercel.com/t/hobby-account-private-repo-collaborators-deployment-blocked/1030
 - Etkinlik sayfası: https://manisatto.com.tr/p/etkinlikler-hackathon
 - Milliyet (AA), 3 Aralık 2025: "Türkiye'nin 'yeşil OSB' haritası büyüdü!"
