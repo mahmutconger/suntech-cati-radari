@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.hesap import VarsayimlarDto
+
 
 class Mesaj(BaseModel):
     rol: Literal["kullanici", "asistan"]
@@ -13,6 +15,7 @@ class Mesaj(BaseModel):
 class SohbetIstegi(BaseModel):
     mesajlar: list[Mesaj] = Field(min_length=1, max_length=20)
     bina_id: int | None = None
+    varsayimlar: VarsayimlarDto | None = None  # kaydırıcı değerleri; yoksa varsayılanlar
 
     @field_validator("mesajlar")
     @classmethod

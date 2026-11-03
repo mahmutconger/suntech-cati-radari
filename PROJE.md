@@ -356,7 +356,8 @@ BinaOzet     { id, ad, alan_m2, merkez: [lon, lat] }   // /binalar/yakin ek olar
 BinaDetay    BinaOzet + { verim_kwh_kwp, mevcut_ges, pvgis_id, geometri: GeoJSON Polygon,
                en_yakin_trafo: { id, ad, gerilim_kv, mesafe_km } }
 SohbetIstegi { mesajlar: [{ rol: "kullanici" | "asistan", metin }] (en çok 20, son 10'u kullanılır,
-               sonuncusu kullanıcının, metin ≤ 2000), bina_id?: açık kartın id'si }
+               sonuncusu kullanıcının, metin ≤ 2000), bina_id?: açık kartın id'si,
+               varsayimlar?: Varsayimlar (kaydırıcı değerleri; yoksa varsayılanlar) }
 SohbetYaniti { cevap, araclar: [{ ad, girdi }], model }   // geçmişi istemci tutar; 429 hız sınırı, 503 asistan meşgul
 KayitIstegi  { bina_id, varsayimlar: Varsayimlar, tuketim: { yillik_kwh } | null, sonuc: HesapSonucu }
 Kayit        KayitIstegi + { id, bina_ad, olusturma }   // GET yeniden eskiye, POST 201, DELETE 204;
@@ -376,7 +377,7 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 
 ### 10.1 Asistan (Nazım)
 
-- **Araçlar:** `osb_ozeti`, `bina_bul`, `bina_detayi`, `sirala`. Hepsi salt okunur ve hesap use case'lerini çağırır.
+- **Araçlar:** `osb_ozeti(en_cok_geri_odeme_yil?)`, `bina_bul(q)`, `bina_detayi(bina_id)` (hesap sonucu dahil), `sirala(olcut, adet ≤ 20)`. Hepsi salt okunur ve Mehmet'in hesap use case'lerini çağırır.
 - **Sistem talimatı:** "Sayıları yalnızca araç çıktısından al, kendin hesaplama. Araçta olmayan bir şey sorulursa bilmediğini söyle. Ön fizibilite notunun sonuna şunu ekle: Bu bir ön taramadır. Çatı statiği, mevcut tesisat ve şebeke bağlantısı için yerinde keşif gerekir."
 - **Ön fizibilite notu:** bina ve konum, kullanılan varsayımlar, sonuç tablosu, dikkat edilecekler (statik, mevcut GES, trafo kapasitesi), sonraki adım (yerinde keşif ve en az iki teklif).
 - **Model:** `GEMINI_MODELLER` sırasıyla gemini-3.6-flash, gemini-3.5-flash, gemini-3.5-flash-lite; 503 ya da 429 gelince sıradakine geçilir (3.7/3.8 Flash 3 Kasım'da sürekli meşguldü, 2.5 yeni kullanıcıya kapalı). Anahtar ücretli katmandan. `GEMINI_SAHTE=1` iken istek gitmez.
