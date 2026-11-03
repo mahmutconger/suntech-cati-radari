@@ -4,7 +4,12 @@
 
 Bu dosya projenin tek kaynağıdır: ne yaptığımız, nasıl kurduğumuz, kimin neyi yaptığı ve hangi rakamı nereden aldığımız burada. Ekip için özet, mimari ve kişi kişi saatli görev sırası ayrıca [docs/SunTech-Gorev-Plani.pdf](docs/SunTech-Gorev-Plani.pdf) dosyasında.
 
-> **Durum, 1 Kasım 2026:** Başvuru gönderildi, ön eleme sonucu 2 Kasım'da. Organizatör etkinlikten önce kod yazmanın serbest olup olmadığını henüz cevaplamadı. Bu yüzden repoda yalnızca belge ve ayar dosyaları var. Uygulama kodu 3 Kasım 10:00'da yazılmaya başlanacak.
+> **Durum, 3 Kasım 2026 akşamı:** Uygulama canlıda ve uçtan uca çalışıyor (harita, arama, hesap, simülasyon, uydu tespiti, asistan, giriş, Kayıtlarım).
+>
+> - Site: https://suntech-cati-radari--suntech-cati-radari.europe-west4.hosted.app
+> - API: https://suntech-backend-338282009641.europe-west3.run.app (ör. `/api/v1/binalar/ara?q=vestel`)
+>
+> Dağıtım ayrıntıları §13'te.
 
 ---
 
@@ -393,7 +398,7 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 
 ### 10.3 Gemini kotası
 
-Ücretsiz kota proje başına sayılıyor ve günlük kota Pasifik saatiyle gece yarısı, yani Türkiye saatiyle 11:00'de sıfırlanıyor. 3 Kasım 11:00'den 4 Kasım sabahki sunuma kadar tek günlük kota harcanır. Geliştirmede çoğunlukla sahte cevapla çalışılır; uydu tespiti yalnızca düğmeyle çalışır; sunuma en az 100 istek bırakılır. Kart varsa faturalandırma açılır ve 5 dolarlık bütçe uyarısı konur.
+Ücretsiz katmanda model başına günde yaklaşık 20 istek var ve kota Türkiye saatiyle 11:00'de sıfırlanıyor; 3 Kasım öğleden sonra 3.6-flash ve 3.5-flash bu yüzden 429 verdi. Firebase projesinin Blaze'e geçmesi AI Studio anahtarını kendiliğinden faturalı yapmıyor (AI Studio'da Tier 1 ayrıca ön ödeme istiyor). Canlıda kredili ayrı bir anahtar kullanılıyor; asistan ilk modelle ~13 saniyede cevap veriyor. Geliştirmede `GEMINI_SAHTE=1` ile sahte cevapla çalışılır, uydu tespiti yalnızca düğmeyle çalışır ve sonuçları Firestore'da önbelleğe alınır.
 
 ---
 
@@ -426,20 +431,43 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 
 ## 13. Yayın ve ortamlar
 
-- **Backend:** Cloud Run'da `backend/Dockerfile` ile FastAPI, bölge europe-west3 (Firestore ile aynı).
-- **Frontend:** Firebase App Hosting, kök dizin `frontend/`, ayarlar `frontend/apphosting.yaml`'da. `next.config.ts`'deki rewrites `/api/v1/*` isteklerini Cloud Run adresine (`API_BASE_URL`) yönlendirir; böylece CORS ve adres karmaşası azalır.
-- **Veritabanı:** Firebase projesi. App Hosting ve Cloud Run Blaze planı (kartlı, ücretsiz kotası olan) ister. Firestore veritabanı oluşturulur; backend `firebase-admin` ile bağlanır. Frontend veritabanına doğrudan bağlanmaz, yalnızca backend API'si üzerinden erişir. Firebase Auth aynı projede.
-- **Dallar ve adresler:** her push bir önizleme adresi üretir; `main` dalı canlı yayındır.
-- **Yedek:** backend Docker imajı (Render ya da laptop), laptopta `uvicorn` + `cloudflared tunnel --url http://localhost:8000`, en son kayıtlı demo videosu.
+- **Backend:** Cloud Run servisi `suntech-backend`, bölge europe-west3 (Firestore ile aynı), `backend/Dockerfile` ile. Adres: https://suntech-backend-338282009641.europe-west3.run.app. Cloud Run'da servis hesabı dosyası yok; `firebase-admin` varsayılan kimlikle (compute servis hesabı, `roles/datastore.user`) bağlanır.
+- **Frontend:** Firebase App Hosting backend'i `suntech-cati-radari`, bölge europe-west4, kök dizin `/frontend`, canlı dal `main`, otomatik yayın açık. Ayarlar `frontend/apphosting.yaml`'da. `next.config.ts`'deki rewrites `/api/v1/*` isteklerini sunucu tarafında Cloud Run'a (`API_BASE_URL`) iletir; tarayıcı yalnızca kendi alan adını gördüğü için CORS gerekmez. Adres: https://suntech-cati-radari--suntech-cati-radari.europe-west4.hosted.app (Firebase Auth > Authorized domains'e ekli).
+- **Veritabanı:** Firestore europe-west3, Blaze planı. Kurallar `firebase/firestore.rules`'da, istemci erişimi tamamen kapalı; yalnızca backend okur ve yazar. Firebase Auth aynı projede.
+- **Yedek:** laptopta `uvicorn` + `cloudflared tunnel --url http://localhost:8000`, en son kayıtlı demo videosu.
 
-| Değişken | Nerede | Kim ekler | Not |
-|---|---|---|---|
-| `GEMINI_API_KEY` | backend | elle | gizli |
-| `FIREBASE_SERVICE_ACCOUNT` | backend | elle | Firebase servis hesabı JSON'u (base64 veya dosya yolu), gizli |
-| `FIREBASE_PROJECT_ID` | backend, frontend | elle | Firebase proje kimliği |
-| `FIREBASE_API_KEY` | frontend | elle | Firebase web API anahtarı (istemci tarafı, gizli değil) |
-| `CORS_ORIGINS` | backend | elle | frontend adresleri |
-| `API_BASE_URL` | frontend | elle | rewrites hedefi |
+**Yayın komutları** (gcloud ve firebase CLI girişli olmalı):
+
+```powershell
+# Frontend: main'e birleştirmek yeterli, App Hosting kendisi yayınlar.
+
+# Backend: backend/ klasöründen (kökten çalışırsa Dockerfile'ı görmez). Ortam değişkenleri önceki sürümden kalır.
+cd backend
+gcloud run deploy suntech-backend --source . --region europe-west3
+
+# Yalnızca Gemini anahtarını değiştirmek (yeniden build yok):
+$k = (Select-String -Path .env -Pattern '^GEMINI_API_KEY=').Line.Split('=',2)[1]
+gcloud run services update suntech-backend --region europe-west3 --update-env-vars "GEMINI_API_KEY=$k"
+
+# Firestore kuralları ve index'ler (repo kökünden):
+firebase deploy --only firestore --project suntech-cati-radari
+
+# Sunum sabahı soğuk başlangıcı kapat, sonra geri aç:
+gcloud run services update suntech-backend --region europe-west3 --min-instances 1
+gcloud run services update suntech-backend --region europe-west3 --min-instances 0
+```
+
+Takım yerelde backend çalıştırmadan canlı API'yle geliştirebilir: `frontend/.env.local` içinde `API_BASE_URL=https://suntech-backend-338282009641.europe-west3.run.app`.
+
+| Değişken | Nerede | Not |
+|---|---|---|
+| `GEMINI_API_KEY` | backend (Cloud Run, yerel `.env`) | gizli |
+| `FIREBASE_PROJECT_ID` | backend, frontend | `suntech-cati-radari` |
+| `FIREBASE_SERVICE_ACCOUNT` | yalnızca yerel backend `.env` | servis hesabı JSON'unun yolu, gizli; Cloud Run'da gerekmez |
+| `GEMINI_SAHTE` | yerel backend | `1`: Gemini'ye istek gitmez |
+| `CORS_ORIGINS` | yerel backend | `http://localhost:3000`; canlıda rewrites yüzünden gerekmez |
+| `API_BASE_URL` | frontend | rewrites hedefi |
+| `NEXT_PUBLIC_FIREBASE_*` | frontend (`apphosting.yaml`, `.env.local`) | web uygulaması "web", gizli değil |
 
 ---
 
