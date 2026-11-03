@@ -1,48 +1,19 @@
 // UYGULAMA TİPLERİ
-// Hesap ve sohbet tipleri backend'in OpenAPI şemasından üretilen src/types/api.ts'ten gelir
-// (`npm run tipler`). /binalar ve /trafo-merkezleri uçları şemada yanıt modeli tanımlamadığı
-// için onların tipleri burada elle tutuluyor (PROJE.md Bölüm 9).
+// Hesap, sohbet, kayıt, uydu ve finans tipleri backend'in OpenAPI şemasından üretilen
+// src/types/api.ts'ten gelir (`npm run tipler`). /binalar, /trafo-merkezleri ve /osblar uçları
+// şemada yanıt modeli tanımlamadığı için onların tipleri burada elle tutuluyor (PROJE.md Bölüm 9).
 
 import type { components } from "@/types/api";
 
 type Sema = components["schemas"];
 
-// --- §22 ile gelen alanlar ---
-// Backend yayına alınana kadar şemada yoklar; isteğe bağlı tutulur, gelince arayüzde görünür.
-// `npm run tipler` sonrası üretilen tipte zorunlu olurlar; kesişim (&) yine doğru kalır.
-
-/** Mehmet'in yeni varsayımları (§22.1). */
-export interface GelismisVarsayimlar {
-  omur_yil: number;
-  degradasyon: number;
-  bakim_orani: number;
-  iskonto_orani: number;
-  tarife_artisi: number;
-}
-
-/** Yeni hesap alanları (§22.1). */
-export interface FinansAlanlari {
-  /** Net bugünkü değer, TL */
-  nbd_tl: number;
-  /** İç verim oranı, 0-1 */
-  ic_verim_orani: number | null;
-  net_kazanc_25y_tl: number;
-  /** Seviyelendirilmiş enerji maliyeti, TL/kWh */
-  lcoe_tl_kwh: number;
-  /** 0-100 */
-  uygunluk_skoru: number;
-}
-
-// --- Üretilen şemadan (Mehmet: hesap; Nazım: sohbet, kayıtlar, uydu) ---
-export type Varsayimlar = Sema["VarsayimlarDto"] & Partial<GelismisVarsayimlar>;
-export type HesapSonucu = Sema["HesapSonucuDto"] & Partial<FinansAlanlari>;
-export type OsbOzeti = Sema["OsbOzetiDto"] & Partial<{ toplam_nbd_tl: number; ortalama_skor: number }>;
-export type TopluHesapYaniti = Omit<Sema["TopluHesapYaniti"], "sonuclar" | "ozet"> & {
-  sonuclar: HesapSonucu[];
-  ozet: OsbOzeti;
-};
+// --- Üretilen şemadan (Mehmet: hesap ve finans; Nazım: sohbet, kayıtlar, uydu) ---
+export type Varsayimlar = Sema["VarsayimlarDto"];
+export type HesapSonucu = Sema["HesapSonucuDto"];
+export type OsbOzeti = Sema["OsbOzetiDto"];
+export type TopluHesapYaniti = Sema["TopluHesapYaniti"];
 export type VarsayimKaynagi = Sema["VarsayimKaynagiDto"];
-export type VarsayimlarYaniti = Omit<Sema["VarsayimlarYaniti"], "varsayimlar"> & { varsayimlar: Varsayimlar };
+export type VarsayimlarYaniti = Sema["VarsayimlarYaniti"];
 export type BinaHesapIstegi = Sema["BinaHesapIstegi"];
 export type SohbetMesaji = Sema["Mesaj"];
 export type SohbetIstegi = Sema["SohbetIstegi"];
@@ -126,22 +97,19 @@ export interface TrafoKoleksiyonu {
 }
 
 
-/** GET /osblar (§22.1) */
+/**
+ * GET /osblar (§22.1). `sinir`: en büyük parçanın [{lon, lat}] halkası; `sinir_geojson`: bütün parçalar
+ * (MultiPolygon). Bir ara `sinir` doğrudan GeoJSON geldiği için o biçim de okunur.
+ */
 export interface Osb {
   id: string;
   ad: string;
   merkez: { lat: number; lon: number };
   sinir_kutusu: { guney: number; bati: number; kuzey: number; dogu: number };
-  sinir: { lon: number; lat: number }[];
+  sinir: { lon: number; lat: number }[] | CokgenGeometri;
+  sinir_geojson?: CokgenGeometri;
   bina_sayisi: number;
 }
 
-/** POST /hesap/finans/{bina_id}: 25 yılın her yılı (§22.1) */
-export interface FinansYili {
-  yil: number;
-  uretim_mwh: number;
-  tasarruf_tl: number;
-  bakim_tl: number;
-  net_akis_tl: number;
-  kumulatif_tl: number;
-}
+/** POST /hesap/finans/{bina_id}: 25 yılın her yılı (§22.1, Mehmet'in YillikNakitAkisiDto şeması) */
+export type FinansYili = Sema["YillikNakitAkisiDto"];
