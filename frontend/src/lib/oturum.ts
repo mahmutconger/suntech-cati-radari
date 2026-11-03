@@ -6,6 +6,7 @@
 import {
   browserLocalPersistence,
   browserSessionPersistence,
+  indexedDBLocalPersistence,
   createUserWithEmailAndPassword,
   sendEmailVerification,
   sendPasswordResetEmail,
@@ -54,9 +55,80 @@ function hazirAuth(): Auth {
   return auth;
 }
 
-/** "Beni hatırla" işaretliyse oturum tarayıcı kapansa da sürer; değilse sekme kapanınca biter. */
+/**
+ * "Beni hatırla" işaretliyse oturum tarayıcı kapansa da sürer; değilse sekme kapanınca biter.
+ *
+ * Kalıcı oturum IndexedDB'de tutulur, çünkü Firebase her sayfa açılışında oturumu kendi ilk tercihi olan
+ * IndexedDB'ye taşır. Önceden localStorage seçiliydi: yeni açılan sekme oturumu IndexedDB'ye taşıyıp
+ * localStorage'dan siliyor, eski sekme bunu çıkış sanıyordu; çıkış da yalnızca bir kopyayı sildiği için
+ * sayfa yeniden açılınca kalan kopyayla aynı hesaba giriliyordu.
+ */
 async function kaliciligiAyarla(auth: Auth, hatirla: boolean): Promise<void> {
-  await setPersistence(auth, hatirla ? browserLocalPersistence : browserSessionPersistence);
+  if (!hatirla) {
+    await setPersistence(auth, browserSessionPersistence);
+    return;
+  }
+  try {
+    await setPersistence(auth, indexedDBLocalPersistence);
+  } catch {
+    // IndexedDB kapalıysa (bazı gizli pencereler) localStorage'a düş.
+    await setPersistence(auth, browserLocalPersistence);
+  }
+}
+
+const OTURUM_ANAHTARI = "firebase:authUser:";
+
+/**
+ * Çıkıştan sonra tarayıcıda kalmış oturum kopyalarını siler (localStorage, sessionStorage, IndexedDB).
+ * Önceki sürümün bıraktığı ikinci kopya, çıkıştan sonra aynı hesaba geri girilmesine yol açıyordu.
+ */
+async function oturumKopyalariniSil(): Promise<void> {
+  for (const depo of [window.localStorage, window.sessionStorage]) {
+    try {
+      Object.keys(depo)
+        .filter((k) => k.startsWith(OTURUM_ANAHTARI))
+        .forEach((k) => depo.removeItem(k));
+    } catch {
+      // Depo erişilemiyorsa (gizlilik ayarı) geç.
+    }
+  }
+  await new Promise<void>((bitti) => {
+    let istek: IDBOpenDBRequest;
+    try {
+      istek = indexedDB.open("firebaseLocalStorageDb");
+    } catch {
+      bitti();
+      return;
+    }
+    // Veritabanı hiç yoksa oluşturma: Firebase onu kendi şemasıyla açar.
+    istek.onupgradeneeded = () => istek.transaction?.abort();
+    istek.onerror = () => bitti();
+    istek.onblocked = () => bitti();
+    istek.onsuccess = () => {
+      const db = istek.result;
+      const depoAdi = "firebaseLocalStorage";
+      if (!db.objectStoreNames.contains(depoAdi)) {
+        db.close();
+        bitti();
+        return;
+      }
+      const islem = db.transaction(depoAdi, "readwrite");
+      const imlec = islem.objectStore(depoAdi).openCursor();
+      imlec.onsuccess = () => {
+        const c = imlec.result;
+        if (!c) return;
+        if (String(c.key).startsWith(OTURUM_ANAHTARI)) c.delete();
+        c.continue();
+      };
+      islem.oncomplete =
+        islem.onerror =
+        islem.onabort =
+          () => {
+            db.close();
+            bitti();
+          };
+    };
+  });
 }
 
 export async function girisYap(eposta: string, sifre: string, hatirla = true): Promise<void> {
@@ -99,7 +171,12 @@ export async function sifreSifirlamaGonder(eposta: string): Promise<void> {
 
 export async function cikisYap(): Promise<void> {
   const auth = firebaseAuth();
-  if (auth) await signOut(auth);
-  else useOturum.getState().ayarla(null);
-  window.location.href = "/giris";
+  if (auth) {
+    await signOut(auth);
+    await oturumKopyalariniSil();
+  } else {
+    useOturum.getState().ayarla(null);
+  }
+  // replace: geri tuşu oturumlu sayfaya dönmesin; tam yükleme bellekteki eski durumu da temizler.
+  window.location.replace("/giris");
 }
