@@ -55,6 +55,8 @@ class _FirestoreBellekBinaDeposu:
             sozluk: dict[int, Bina] = {}
             for doc in docs:
                 veri = doc.to_dict() or {}
+                if veri.get("osb", "manisa") != "manisa":  # geçici: osb parametresi gelene kadar yalnız Manisa (§22.3)
+                    continue
                 ham_id = veri.get("id") if veri.get("id") is not None else veri.get("osm_id", doc.id)
                 if ham_id is None:
                     continue

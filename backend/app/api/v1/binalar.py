@@ -3,27 +3,41 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 
 from app.application import bina
-from app.infrastructure.depo import binalar, trafolar
+from app.infrastructure.depo import VARSAYILAN_OSB, binalar, trafolar
 
 router = APIRouter(tags=["binalar"])
 
+OsbParam = Query(VARSAYILAN_OSB, pattern=r"^[a-z0-9_-]{1,40}$", description="OSB kimliği, /osblar'dan")
+
+
+def _osb_dogrula(osb: str) -> str:
+    if not bina.osb_var_mi(osb):
+        raise HTTPException(404, detail={"kod": "osb_yok", "mesaj": f"OSB bulunamadı: {osb}"})
+    return osb
+
+
+@router.get("/osblar")
+def osb_listele() -> list[dict]:
+    """Yüklü OSB'ler: ad, merkez, sınır kutusu, sınır çokgeni ([lon, lat] çiftleri), bina sayısı."""
+    return bina.osb_listesi()
+
 
 @router.get("/binalar")
-def binalar_listele() -> dict:
-    """OSB'deki bütün binalar, GeoJSON FeatureCollection (bbox filtresi istemcide)."""
+def binalar_listele(osb: str = OsbParam) -> dict:
+    """Seçili OSB'deki bütün binalar, GeoJSON FeatureCollection (bbox filtresi istemcide)."""
     return {
         "type": "FeatureCollection",
         "features": [
             {"type": "Feature", "id": b["osm_id"], "geometry": bina.cokgen(b), "properties": bina.ozet(b)}
-            for b in binalar()
+            for b in binalar(_osb_dogrula(osb))
         ],
     }
 
 
 @router.get("/binalar/ara")
-def binalar_ara(q: str = Query(min_length=1, max_length=100)) -> list[dict]:
-    """Ada ya da OSM kimliğine göre arama, en çok 20 sonuç."""
-    return bina.ara(q)
+def binalar_ara(q: str = Query(min_length=1, max_length=100), osb: str = OsbParam) -> list[dict]:
+    """Seçili OSB'de ada ya da OSM kimliğine göre arama, en çok 20 sonuç."""
+    return bina.ara(q, osb=_osb_dogrula(osb))
 
 
 @router.get("/binalar/yakin")
@@ -32,7 +46,7 @@ def binalar_yakin(
     lon: float = Query(ge=-180, le=180),
     r: float = Query(1.0, gt=0, le=20, description="km"),
 ) -> list[dict]:
-    """Noktaya r km içindeki binalar, yakından uzağa, en çok 50 sonuç."""
+    """Noktaya r km içindeki binalar (bütün OSB'ler), yakından uzağa, en çok 50 sonuç."""
     return bina.yakin(lat, lon, r)
 
 
@@ -45,7 +59,7 @@ def bina_detay(bina_id: int) -> dict:
 
 
 @router.get("/trafo-merkezleri")
-def trafo_merkezleri() -> dict:
+def trafo_merkezleri(osb: str = OsbParam) -> dict:
     return {
         "type": "FeatureCollection",
         "features": [
@@ -56,6 +70,6 @@ def trafo_merkezleri() -> dict:
                 "properties": {k: t[k] for k in ("ad", "isletmeci", "gerilim_kv", "kalan_kapasite_mw", "kaynak")}
                 | {"id": t["osm_id"]},
             }
-            for t in trafolar()
+            for t in trafolar(_osb_dogrula(osb))
         ],
     }

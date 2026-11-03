@@ -719,15 +719,18 @@ Dört özellik ekleniyor: **diğer Manisa OSB'leri**, **25 yıllık finans**, **
 
 **Firestore**
 
-- `binalar` dokümanlarına `osb` (ör. `"manisa"`, `"akhisar"`) ve `trafo_mesafe_km` alanları eklenir. `osb` alanı olmayan eski kayıtlar `"manisa"` sayılır.
-- Yeni koleksiyon `osblar`: `{id, ad, merkez{lat,lon}, sinir_kutusu{guney,bati,kuzey,dogu}, sinir[{lon,lat}], bina_sayisi}`.
+- `binalar` dokümanlarına `osb` (`"manisa"`, `"muradiye"`, `"salihli"`) ve `trafo_mesafe_km` alanları eklendi. `osb` alanı olmayan kayıt `"manisa"` sayılır.
+- `trafo_merkezleri` dokümanlarında `osblar` listesi var: Manisa ile Muradiye OSB komşu, aynı trafolar ikisinde de görünür.
+- Yeni koleksiyon `osblar`: `{id, ad, merkez{lat,lon}, sinir_kutusu{guney,bati,kuzey,dogu}, sinir[{noktalar[{lon,lat}]}], bina_sayisi, osm}`. API `sinir`'i GeoJSON `MultiPolygon` olarak döner (Leaflet'te doğrudan `L.geoJSON`).
+- **Yüklü OSB'ler (3 Kasım):** Manisa OSB 396 bina, Muradiye OSB 256, Salihli OSB 11. Yalnızca OSM'de sınırı "Organize Sanayi Bölgesi" olarak çizili olanlar alındı. Akhisar, Turgutlu ve Alaşehir OSB'lerinin OSM'de sınırı yok; Soma OSB'nin sınırı var ama içinde 1.000 m² üstü bina çizilmemiş. Yeni OSB `backend/scripts/veri_yukle.py`'deki `OSBLAR`'a eklenir, sonra üç betik `--osb <id>` ile çalışır.
 
 **API**
 
 | Uç | Değişiklik |
 |---|---|
 | `GET /osblar` | yeni; OSB listesi |
-| `GET /binalar`, `/binalar/ara`, `/trafo-merkezleri`, `GET /hesap/sirala` | `?osb=` parametresi, verilmezse `manisa` |
+| `GET /binalar`, `/binalar/ara`, `/trafo-merkezleri`, `GET /hesap/sirala` | `?osb=` parametresi, verilmezse `manisa`; bilinmeyen OSB 404 `osb_yok`. Bina özetlerinde `osb` alanı var. |
+| `POST /sohbet` | gövdeye `osb` (haritada açık olan OSB); asistanın `osb_listesi` aracı var, `osb_ozeti` ve `sirala` OSB alır |
 | `POST /hesap/toplu` | gövdeye `osb` alanı |
 | `POST /hesap/finans/{bina_id}` | yeni; gövde `{varsayimlar, yillik_tuketim_kwh}`, yanıt 25 yılın her yılı için `{yil, uretim_mwh, tasarruf_tl, bakim_tl, net_akis_tl, kumulatif_tl}` |
 | `GET /uydu/{bina_id}/goruntu` | yeni; çatının JPEG uydu görüntüsü (PDF için) |
@@ -740,6 +743,8 @@ Dört özellik ekleniyor: **diğer Manisa OSB'leri**, **25 yıllık finans**, **
 **Yeni sıralama ölçütleri:** `uygunluk_skoru`, `nbd_tl`.
 
 ### 22.2 Nazım: veri, OSB'ler, API, asistan, uydu
+
+**Durum (3 Kasım gece):** bu bölümün hepsi bitti. Mehmet için not: `api/v1/hesapService.py`'deki depoya geçici olarak "yalnız Manisa" süzgeci eklendi (canlıda toplamlar 733 binaya çıkmıştı). `osb` parametresini eklerken o satırı kaldır. Asistanın sıralama ölçütleri `SiralamaOlcutu`'ndan otomatik alınıyor; yeni ölçüt eklediğinde asistan da kullanır.
 
 | Dosya | İş |
 |---|---|

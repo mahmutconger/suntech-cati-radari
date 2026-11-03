@@ -1,35 +1,41 @@
 """
-PVGIS ızgarasını çekip Firestore'a yazar, her binaya en yakın noktanın verimini ekler (PROJE.md §7, adım 3).
-Önce scripts.veri_yukle çalışmış olmalı.
+Bir OSB için PVGIS ızgarasını çekip Firestore'a yazar, her binaya en yakın noktanın verimini ekler (PROJE.md §7 adım 3, §22).
+Önce scripts.veri_yukle aynı --osb ile çalışmış olmalı.
 Kullanım (backend/ klasöründe):
-    python -m scripts.pvgis_yukle          # ham yanıtlar varsa onları kullanır
-    python -m scripts.pvgis_yukle --kuru   # Firestore'a yazmadan özet basar
+    python -m scripts.pvgis_yukle --osb manisa          # ham yanıtlar varsa onları kullanır
+    python -m scripts.pvgis_yukle --osb manisa --kuru   # Firestore'a yazmadan özet basar
 """
 from __future__ import annotations
 
 import json
+import math
 import sys
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 
 import httpx
+from google.cloud.firestore_v1.base_query import FieldFilter
 
-BACKEND = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(BACKEND))
+from scripts.veri_yukle import HAM_KLASOR as RAW, USER_AGENT, secili_osb, sinir_kutusu, sinir_oku
 
 from app.core.firebase import get_firestore_client  # noqa: E402
 from app.core.geo import haversine_km  # noqa: E402
 
-HAM_KLASOR = BACKEND / "data" / "raw" / "pvgis"
+HAM_KLASOR = RAW / "pvgis"
 TABAN = "https://re.jrc.ec.europa.eu/api/v5_3"
 ORTAK = {"peakpower": 1, "loss": 14, "angle": 0, "aspect": 0,
          "raddatabase": "PVGIS-SARAH3", "outputformat": "json"}
-USER_AGENT = "suntech-cati-radari/0.1 (github.com/nazimhikmetsasi/suntech-cati-radari)"
 
-# OSB sınırı: enlem 38.6075-38.6367, boylam 27.2947-27.3766; 0,01°'lik hücre merkezleri, 4 x 9 = 36 nokta
-ENLEMLER = [round(38.605 + 0.01 * i, 3) for i in range(4)]
-BOYLAMLAR = [round(27.295 + 0.01 * j, 3) for j in range(9)]
+
+def izgara(kutu: dict) -> tuple[list[float], list[float]]:
+    """0,01°'lik hücre merkezleri (x.xx5). Manisa OSB: 4 enlem x 9 boylam = 36 nokta."""
+    def eksen(alt: float, ust: float) -> list[float]:
+        v, sonuc = math.floor(alt * 100) / 100 + 0.005, []
+        while v - 0.005 <= ust:
+            sonuc.append(round(v, 3))
+            v += 0.01
+        return sonuc
+    return eksen(kutu["guney"], kutu["kuzey"]), eksen(kutu["bati"], kutu["dogu"])
 
 
 def nokta_id(lat: float, lon: float) -> str:
@@ -56,13 +62,13 @@ def pvgis_getir(client: httpx.Client, uc: str, lat: float, lon: float, ek: dict)
     raise RuntimeError(f"PVGIS {uc} {nokta_id(lat, lon)} alınamadı")
 
 
-def izgara_cek() -> list[dict]:
+def izgara_cek(enlemler: list[float], boylamlar: list[float]) -> list[dict]:
     HAM_KLASOR.mkdir(parents=True, exist_ok=True)
     noktalar = []
     # trust_env=False: sistemdeki HTTPS_PROXY 503 döndürüyor
     with httpx.Client(trust_env=False, headers={"User-Agent": USER_AGENT}, timeout=120) as client:
-        for lat in ENLEMLER:
-            for lon in BOYLAMLAR:
+        for lat in enlemler:
+            for lon in boylamlar:
                 yillik = pvgis_getir(client, "PVcalc", lat, lon, {})
                 seri = pvgis_getir(client, "seriescalc", lat, lon,
                                    {"pvcalculation": 1, "startyear": 2023, "endyear": 2023})
@@ -82,17 +88,17 @@ def en_yakin(merkez: dict, noktalar: list[dict]) -> dict:
     return min(noktalar, key=lambda n: haversine_km(merkez["lat"], merkez["lon"], n["nokta"]["lat"], n["nokta"]["lon"]))
 
 
-def firestore_yaz(noktalar: list[dict]) -> None:
+def firestore_yaz(slug: str, noktalar: list[dict]) -> None:
     db = get_firestore_client()
     simdi = datetime.now(timezone.utc)
-    izgara = db.collection("pvgis_izgara")
+    col = db.collection("pvgis_izgara")
     for n in noktalar:
-        izgara.document(n["id"]).set({k: v for k, v in n.items() if k != "id"} | {"cekilme_tarihi": simdi})
+        col.document(n["id"]).set({k: v for k, v in n.items() if k != "id"} | {"osb": slug, "cekilme_tarihi": simdi})
     print(f"{len(noktalar)} ızgara noktası yazıldı")
 
-    binalar = db.collection("binalar")
-    docs = list(binalar.select(["merkez"]).stream())
-    assert docs, "binalar boş, önce scripts.veri_yukle çalıştır"
+    sorgu = db.collection("binalar").where(filter=FieldFilter("osb", "==", slug))
+    docs = list(sorgu.select(["merkez"]).stream())
+    assert docs, f"{slug} binası yok, önce scripts.veri_yukle --osb {slug} çalıştır"
     for i in range(0, len(docs), 400):
         batch = db.batch()
         for d in docs[i : i + 400]:
@@ -104,8 +110,11 @@ def firestore_yaz(noktalar: list[dict]) -> None:
 
 if __name__ == "__main__":
     assert abs(haversine_km(38.62, 27.33, 38.63, 27.33) - 1.112) < 0.001
-    noktalar = izgara_cek()
+    manisa = izgara({"guney": 38.6075, "bati": 27.2947, "kuzey": 38.6367, "dogu": 27.3766})
+    assert manisa == ([38.605, 38.615, 38.625, 38.635], [round(27.295 + 0.01 * j, 3) for j in range(9)]), manisa
+    slug, osb = secili_osb()
+    noktalar = izgara_cek(*izgara(sinir_kutusu(sinir_oku(slug, osb))))
     degerler = [n["yillik_kwh_kwp"] for n in noktalar]
-    print(f"{len(noktalar)} nokta, verim {min(degerler)}-{max(degerler)} kWh/kWp")
+    print(f"{slug}: {len(noktalar)} nokta, verim {min(degerler)}-{max(degerler)} kWh/kWp")
     if "--kuru" not in sys.argv:
-        firestore_yaz(noktalar)
+        firestore_yaz(slug, noktalar)

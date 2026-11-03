@@ -14,6 +14,6 @@ router = APIRouter(tags=["sohbet"])
 def sohbet(istek: SohbetIstegi) -> dict:
     """Asistan. Konuşma geçmişini istemci tutar; her istekte son mesajlar gönderilir."""
     try:
-        return cevapla([m.model_dump() for m in istek.mesajlar[-10:]], istek.bina_id, istek.varsayimlar)
+        return cevapla([m.model_dump() for m in istek.mesajlar[-10:]], istek.bina_id, istek.varsayimlar, istek.osb)
     except GeminiHatasi:
         raise HTTPException(503, detail={"kod": "asistan_mesgul", "mesaj": "Asistan şu an yanıt veremiyor, biraz sonra tekrar deneyin."})
