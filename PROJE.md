@@ -708,3 +708,80 @@ Ortak işaretlenen liste takım sayfasında: https://claude.ai/artifact/P8PMEj6M
 - Milliyet (AA), 3 Aralık 2025: "Türkiye'nin 'yeşil OSB' haritası büyüdü!"
 
 Eski plan belgesi (ilk yığına göre yazılmış, arşiv): [docs/arsiv/SunTech-Cati-Radari-Plan-v2.pdf](docs/arsiv/SunTech-Cati-Radari-Plan-v2.pdf)
+
+---
+
+## 22. Geliştirme planı (3 Kasım akşamı)
+
+Dört özellik ekleniyor: **diğer Manisa OSB'leri**, **25 yıllık finans**, **uygunluk skoru** ve **PDF ön fizibilite raporu**. Kural aynı: herkes yalnızca kendi dosyalarına dokunur. Önce aşağıdaki sözleşme sabitlenir, sonra herkes paralel çalışır. Mahmut backend birleşene kadar sahte veriyle ilerler.
+
+### 22.1 Ortak sözleşme
+
+**Firestore**
+
+- `binalar` dokümanlarına `osb` (ör. `"manisa"`, `"akhisar"`) ve `trafo_mesafe_km` alanları eklenir. `osb` alanı olmayan eski kayıtlar `"manisa"` sayılır.
+- Yeni koleksiyon `osblar`: `{id, ad, merkez{lat,lon}, sinir_kutusu{guney,bati,kuzey,dogu}, sinir[{lon,lat}], bina_sayisi}`.
+
+**API**
+
+| Uç | Değişiklik |
+|---|---|
+| `GET /osblar` | yeni; OSB listesi |
+| `GET /binalar`, `/binalar/ara`, `/trafo-merkezleri`, `GET /hesap/sirala` | `?osb=` parametresi, verilmezse `manisa` |
+| `POST /hesap/toplu` | gövdeye `osb` alanı |
+| `POST /hesap/finans/{bina_id}` | yeni; gövde `{varsayimlar, yillik_tuketim_kwh}`, yanıt 25 yılın her yılı için `{yil, uretim_mwh, tasarruf_tl, bakim_tl, net_akis_tl, kumulatif_tl}` |
+| `GET /uydu/{bina_id}/goruntu` | yeni; çatının JPEG uydu görüntüsü (PDF için) |
+| `GET /uydu/{bina_id}` | yeni; yalnızca önbellekteki sonuç, Gemini'ye gitmez; yoksa 404 |
+
+**Yeni hesap alanları** (`HesapSonucuDto`): `nbd_tl`, `ic_verim_orani`, `net_kazanc_25y_tl`, `lcoe_tl_kwh`, `uygunluk_skoru` (0-100). `OsbOzetiDto`'ya `toplam_nbd_tl` ve `ortalama_skor`.
+
+**Yeni varsayımlar** (`VarsayimlarDto`, kesin değer ve kaynakları Mehmet belirler): `omur_yil` 25, `degradasyon` 0,005, `bakim_orani` yatırımın yıllık %1'i, `iskonto_orani` reel %8, `tarife_artisi` reel %0.
+
+**Yeni sıralama ölçütleri:** `uygunluk_skoru`, `nbd_tl`.
+
+### 22.2 Nazım: veri, OSB'ler, API, asistan, uydu
+
+| Dosya | İş |
+|---|---|
+| `backend/scripts/veri_yukle.py` | `--osb manisa --way 808798100` parametreleri; binalara `osb`; `osblar` dokümanı |
+| `backend/scripts/pvgis_yukle.py`, `trafo_yukle.py` | OSB'ye göre PVGIS ızgarası ve trafolar; her binaya `trafo_mesafe_km` |
+| veri | Manisa'daki OSB'leri Overpass'ta bul (Akhisar, Turgutlu, Salihli, Alaşehir...). Sınırı OSM'de olanları yükle. |
+| `infrastructure/depo.py`, `application/bina.py`, `api/v1/binalar.py` | `/osblar`, `?osb=` süzgeci |
+| `application/uydu.py`, `api/v1/uydu.py` | görüntü ve önbellek uçları; uydu "panel var" derse binanın `mevcut_ges`'i güncellenir |
+| `application/sohbet.py` | araçlara `osb` parametresi, yeni ölçütler, 25 yıllık sorular için yönerge |
+| yayın | her birleştirmeden sonra Cloud Run deploy (§13) |
+
+### 22.3 Mehmet: hesap motoru
+
+| Dosya | İş |
+|---|---|
+| `domain/hesap/finans.py` (yeni) | NBD, iç verim oranı (ikiye bölme yöntemi, numpy yok), LCOE, 25 yıllık nakit akışı |
+| `domain/hesap/skor.py` (yeni) | uygunluk skoru. Önerilen ağırlıklar: geri ödeme %40, güneş verimi %20, kWp %20, trafo mesafesi %10, mevcut GES yok %10. `trafo_mesafe_km` yoksa o bileşen nötr. |
+| `domain/varliklar.py`, `domain/varsayilanlar.py` | `Bina.osb: str`, `Bina.trafo_mesafe_km`; yeni varsayımlar ve kaynakları |
+| `domain/hesap/yillik.py`, `toplu.py` | yeni alanlar `HesapSonucu`'nda; özete toplam NBD ve ortalama skor |
+| `application/hesap/sorgular.py`, `api/v1/hesapService.py`, `schemas/hesap.py` | `osb` süzgeci, `/hesap/finans/{id}`, yeni ölçütler |
+| `tests/domain/` | finans ve skor testleri (§17'deki tabloyla kontrol) |
+| `frontend/src/components/simulasyon/` | 25 yıllık kümülatif nakit akışı grafiği |
+| `frontend/src/app/varsayimlar/` | yeni formüller ve kaynaklar |
+
+### 22.4 Mahmut: arayüz ve PDF
+
+| Dosya | İş |
+|---|---|
+| `store/harita.ts`, `hooks/veri.ts` | seçili OSB; sorgular `osb` ile |
+| üst çubuk | OSB seçici; seçilince harita o OSB'ye uçar ve sınırını çizer |
+| `components/kart/CatiKarti.tsx` | skor rozeti, NBD, iç verim oranı, LCOE ile tarifenin karşılaştırması, 25 yıllık net kazanç |
+| `lib/renk.ts`, `components/harita/` | renk modu: "tasarruf" ya da "uygunluk skoru"; açıklama kutusu |
+| `components/panel/` | "İlk gidilecek 20" listesi (`olcut=uygunluk_skoru`); "Gelişmiş" altında yeni kaydırıcılar |
+| `app/rapor/[binaId]/` (yeni) | tek sayfalık rapor; "Rapor indir" düğmesi `window.print()` ile PDF yapar, kütüphane gerekmez. İçerik: uydu görüntüsü, metrikler, 25 yıllık grafik, uydu sonucu, varsayımlar, uyarı notu |
+| `mocks/veri.ts`, `types/` | yeni alanlarla sahte veri; backend birleşince `types/api.ts` yeniden üretilir |
+
+### 22.5 Sıra ve birleştirme
+
+1. **Sözleşme:** bu bölüm main'e girer, herkes `git pull origin main` yapar.
+2. **Aşama 1, paralel (~4 saat):** Nazım veri ve API; Mehmet finans ve skor (testleriyle); Mahmut arayüzü sahte veriyle.
+3. **Birleştirme 1:** Nazım, ardından Mehmet → Cloud Run deploy → Mahmut tipleri yeniden üretir ve sahte veriyi kapatır.
+4. **Aşama 2 (~3 saat):** PDF rapor, asistan güncellemesi, 25 yıllık grafik, diğer OSB'lerin verisi.
+5. **Birleştirme 2** → deploy → prova. **07:30'da kod dondurulur.**
+
+Tek bağımlılık: Mehmet'in skoru `trafo_mesafe_km` alanını kullanır; alan yoksa o bileşen nötr kalır, Mehmet beklemez.
