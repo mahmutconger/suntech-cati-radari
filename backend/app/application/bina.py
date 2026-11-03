@@ -11,6 +11,7 @@ def ozet(b: dict) -> dict:
         "alan_m2": b["alan_m2"],
         "merkez": [b["merkez"]["lon"], b["merkez"]["lat"]],
         "osb": b.get("osb", VARSAYILAN_OSB),
+        "trafo_mesafe_km": b.get("trafo_mesafe_km"),
     }
 
 
@@ -62,7 +63,6 @@ def detay(bina_id: int) -> dict | None:
         "verim_kwh_kwp": b.get("verim_kwh_kwp"),
         "mevcut_ges": b.get("mevcut_ges", False),
         "pvgis_id": b.get("pvgis_id"),
-        "trafo_mesafe_km": b.get("trafo_mesafe_km"),
         "geometri": cokgen(b),
         "en_yakin_trafo": trafo and {
             "id": trafo["osm_id"],

@@ -4,13 +4,16 @@
 // değilse OSB toplamları ve ilk 20 çatı (uygunluk skoru varsa "İlk gidilecek 20").
 
 import { useMemo, useState } from "react";
+import { Download } from "lucide-react";
 import { CatiKarti } from "@/components/kart/CatiKarti";
 import { binaAdi, Deger, SkorRozeti } from "@/components/ortak/Deger";
 import { Kaydiricilar } from "@/components/panel/Kaydiricilar";
 import { PanelBolumu } from "@/components/panel/PanelBolumu";
+import { SenaryoPaneli } from "@/components/panel/SenaryoPaneli";
 import { useBinalar, useSeciliOsb, useSkorVar, useTopluHesap } from "@/hooks/veri";
 import { SAHTE_VERI } from "@/lib/api";
 import { sayi, tl } from "@/lib/bicim";
+import { csvIndir } from "@/lib/csv";
 import { HATA, KART, SECILI_CIP } from "@/lib/stil";
 import { useHaritaDurumu } from "@/store/harita";
 import type { HesapSonucu } from "@/types/gecici";
@@ -27,15 +30,37 @@ function OsbOzetiBolumu() {
   // Skor yoksa (eski backend) liste her zaman tasarrufa göre.
   const olcut: ListeOlcutu = skorVar ? secilenOlcut : "tasarruf";
 
+  const ozetler = useMemo(
+    () => binalar ? new Map(binalar.features.map((f) => [f.properties.id, f.properties])) : new Map(),
+    [binalar],
+  );
+
   const ilk20 = useMemo(() => {
     if (!hesap || !binalar) return [];
-    const adlar = new Map(binalar.features.map((f) => [f.properties.id, f.properties.ad]));
     const deger = (s: HesapSonucu) => (olcut === "skor" ? (s.uygunluk_skoru ?? 0) : s.tasarruf_tl);
     return [...hesap.sonuclar]
       .sort((a, b) => deger(b) - deger(a))
       .slice(0, 20)
-      .map((s) => ({ ...s, ad: adlar.get(s.bina_id) ?? "" }));
-  }, [hesap, binalar, olcut]);
+      .map((s) => ({ ...s, ad: ozetler.get(s.bina_id)?.ad ?? "", trafoKm: ozetler.get(s.bina_id)?.trafo_mesafe_km ?? null }));
+  }, [hesap, binalar, olcut, ozetler]);
+
+  function listeyiIndir() {
+    const yuvarla = (x: number, basamak: number) => Math.round(x * 10 ** basamak) / 10 ** basamak;
+    csvIndir(`${osb?.id ?? "osb"}-${olcut === "skor" ? "ilk-gidilecek" : "en-cok-kazandiracak"}-20.csv`, [
+      ["Sıra", "Çatı", "OSM no", "Uygunluk skoru", "Yıllık tasarruf (TL)", "Geri ödeme (yıl)", "NBD (TL)", "En yakın trafo (km)", "Bağlantı"],
+      ...ilk20.map((s, i) => [
+        i + 1,
+        binaAdi({ id: s.bina_id, ad: s.ad }),
+        s.bina_id,
+        yuvarla(s.uygunluk_skoru, 1),
+        Math.round(s.tasarruf_tl),
+        yuvarla(s.geri_odeme_yil, 1),
+        Math.round(s.nbd_tl),
+        s.trafoKm,
+        `${window.location.origin}/?bina=${s.bina_id}`,
+      ]),
+    ]);
+  }
 
   if (isError) return <p className={HATA}>{error.message}</p>;
   if (isPending || !hesap) return <p className="text-sm text-murekkep/55">Hesaplanıyor…</p>;
@@ -59,9 +84,10 @@ function OsbOzetiBolumu() {
           <Deger etiket="Ortalama uygunluk" deger={`${sayi(o.ortalama_skor)}/100`} />
         )}
       </div>
+      <SenaryoPaneli sonuclar={hesap.sonuclar} />
       <div className={`${KART} p-3`}>
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-murekkep">
+          <h3 className="min-w-0 flex-1 text-sm font-semibold text-murekkep">
             {olcut === "skor" ? "İlk gidilecek 20 çatı" : "En çok kazandıracak 20 çatı"}
           </h3>
           {skorVar && (
@@ -86,6 +112,15 @@ function OsbOzetiBolumu() {
               ))}
             </div>
           )}
+          <button
+            type="button"
+            onClick={listeyiIndir}
+            title="Listeyi indir (CSV)"
+            aria-label="Listeyi indir (CSV)"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-murekkep/50 hover:bg-murekkep/5"
+          >
+            <Download size={14} />
+          </button>
         </div>
         <ol className="space-y-1">
           {ilk20.map((s, i) => (

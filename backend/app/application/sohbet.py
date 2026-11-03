@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json as _json
 from typing import Any, Callable, get_args
 
 from google.genai import types
@@ -14,6 +15,13 @@ from app.infrastructure.gemini import uret
 from app.schemas.hesap import HesapSonucuDto, OsbOzetiDto, VarsayimlarDto
 
 AZAMI_TUR = 4
+AZAMI_ONBELLEK = 256
+_cevaplar: dict[str, dict] = {}
+
+
+def cevaplari_unut() -> None:
+    """Veri değişince (uydu tespiti gibi) önbelleği temizle."""
+    _cevaplar.clear()
 # Hesap motorundaki ölçütler (yeni ölçüt eklenince asistan da kullanır)
 OLCUTLER = list(get_args(SiralamaOlcutu))
 
@@ -190,9 +198,14 @@ def cevapla(
     while mesajlar[0]["rol"] != "kullanici":  # Gemini konuşmanın kullanıcıyla başlamasını ister
         mesajlar = mesajlar[1:]
     acik_osb = osb if osb and bina.osb_var_mi(osb) else VARSAYILAN_OSB
-    araclar = _araclar(varsayimlar or VarsayimlarDto(), acik_osb)
+    v = varsayimlar or VarsayimlarDto()
+    araclar = _araclar(v, acik_osb)
     if GEMINI_SAHTE:
         return _sahte(mesajlar, bina_id, araclar)
+
+    anahtar = _json.dumps([mesajlar, bina_id, acik_osb, v.model_dump()], ensure_ascii=False, sort_keys=True)
+    if anahtar in _cevaplar:
+        return _cevaplar[anahtar]
 
     sistem = SISTEM + f"\nKullanıcının şu an açık olan OSB'si: {acik_osb}."
     sistem += f"\nKullanıcının şu an açık olan çatı kartı: bina_id={bina_id}." if bina_id is not None else ""
@@ -214,7 +227,12 @@ def cevapla(
         cagrilar = yanit.function_calls or []
         if not cagrilar:
             metin = "".join(p.text or "" for p in (yanit.candidates[0].content.parts or []) if not p.thought).strip()
-            return {"cevap": metin or "Bu soruya cevap üretemedim, farklı sorar mısınız?", "araclar": kullanilan, "model": model}
+            sonuc = {"cevap": metin or "Bu soruya cevap üretemedim, farklı sorar mısınız?", "araclar": kullanilan, "model": model}
+            if metin:
+                if len(_cevaplar) >= AZAMI_ONBELLEK:
+                    _cevaplar.clear()
+                _cevaplar[anahtar] = sonuc
+            return sonuc
         icerik.append(yanit.candidates[0].content)
         parcalar = []
         for c in cagrilar:

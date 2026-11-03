@@ -88,6 +88,8 @@ def _mevcut_ges_isaretle(bina_id: int) -> None:
     bina = HesapDeposu().getir(bina_id)
     if bina is not None:
         bina["mevcut_ges"] = True  # süreç içi önbellek de güncel kalsın
+    from app.application.sohbet import cevaplari_unut
+    cevaplari_unut()
 
 
 def tespit_et(bina_id: int) -> Sonuc[dict]:
