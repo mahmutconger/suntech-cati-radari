@@ -32,6 +32,7 @@ from app.domain.hesap.yillik import (
     birim_maliyet_tl_kwp,
     kwp_hesapla,
     kwp_icin_hesapla,
+    yatirim_maliyeti_hesapla,
 )
 
 __all__ = [
@@ -60,5 +61,6 @@ __all__ = [
     "uygunluk_skoru_hesapla",
     "vardiya_tuketim_profili_uret",
     "varsayilan_saatlik_uretim_wh_kwp",
+    "yatirim_maliyeti_hesapla",
     "yillik_nakit_akisi_hesapla",
 ]
