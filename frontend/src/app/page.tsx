@@ -1,10 +1,6 @@
 import { AnaEkran } from "@/components/AnaEkran";
-import { OturumKapisi } from "@/components/oturum/OturumKapisi";
 
+// Harita herkese açık (jüri QR'dan girişsiz açar); giriş yalnızca kaydetmek ve Kayıtlarım için.
 export default function Sayfa() {
-  return (
-    <OturumKapisi>
-      <AnaEkran />
-    </OturumKapisi>
-  );
+  return <AnaEkran />;
 }
