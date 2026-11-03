@@ -4,8 +4,9 @@
 // (window.print()); orada "PDF olarak kaydet" seçilir, kütüphane gerekmez.
 // Rakamlar haritadaki varsayımlar ve girilen tüketimle aynı; hepsi backend'in hesap motorundan.
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Download, Sun } from "lucide-react";
+import { GeriDugmesi } from "@/components/ortak/GeriDugmesi";
 import { NakitAkisiGrafigi } from "@/components/rapor/NakitAkisiGrafigi";
 import { binaAdi } from "@/components/ortak/Deger";
 import {
@@ -17,6 +18,7 @@ import {
   uyduGoruntuAdresi,
 } from "@/hooks/veri";
 import { alan, sayi, tl } from "@/lib/bicim";
+import { ANA_DUGME } from "@/lib/stil";
 import { useHaritaDurumu } from "@/store/harita";
 import type { CokgenGeometri, Varsayimlar } from "@/types/gecici";
 
@@ -44,9 +46,13 @@ const VARSAYIM_ETIKETLERI: Partial<Record<keyof Varsayimlar, [string, (v: number
 
 function Metrik({ etiket, deger, vurgu = false }: { etiket: string; deger: string; vurgu?: boolean }) {
   return (
-    <div className={`min-w-0 rounded-lg border px-2.5 py-1.5 ${vurgu ? "border-amber-300 bg-amber-50" : "border-slate-200"}`}>
-      <p className="truncate text-[9px] uppercase tracking-wide text-slate-500">{etiket}</p>
-      <p className="text-[13px] font-bold leading-tight text-slate-900">{deger}</p>
+    <div
+      className={`min-w-0 rounded-lg border px-2.5 py-1.5 ${
+        vurgu ? "border-seftali/70 bg-gradient-to-br from-limon/50 to-seftali/25" : "border-murekkep/10"
+      }`}
+    >
+      <p className="truncate text-[9px] uppercase tracking-wide text-murekkep/55">{etiket}</p>
+      <p className="text-[13px] font-bold leading-tight text-murekkep">{deger}</p>
     </div>
   );
 }
@@ -65,8 +71,8 @@ function CatiCizimi({ geometri }: { geometri: CokgenGeometri }) {
     .map(([lon, lat]) => `${(((lon - minX) * olcek + (kenar - g) / 2) / kenar) * 90 + 5},${95 - (((lat - minY) + (kenar - y) / 2) / kenar) * 90}`)
     .join(" ");
   return (
-    <svg viewBox="0 0 100 100" className="h-full w-full bg-slate-100">
-      <polygon points={noktalar} fill="#fcd34d" stroke="#b45309" strokeWidth="1.2" />
+    <svg viewBox="0 0 100 100" className="h-full w-full bg-[#f3efe6]">
+      <polygon points={noktalar} fill="#e1eb71" stroke="#c9822f" strokeWidth="1.2" />
     </svg>
   );
 }
@@ -77,7 +83,7 @@ function UyduGorseli({ binaId, geometri }: { binaId: number; geometri: CokgenGeo
   const adres = geometri ? uyduGoruntuAdresi(binaId) : null;
   const [hata, setHata] = useState(false);
   return (
-    <figure className="overflow-hidden rounded-lg border border-slate-200">
+    <figure className="overflow-hidden rounded-lg border border-murekkep/10">
       <div className="aspect-square w-full">
         {adres && !hata ? (
           // Uydu karosu backend'den JPEG olarak gelir; next/image'ın optimizasyonuna gerek yok.
@@ -87,7 +93,7 @@ function UyduGorseli({ binaId, geometri }: { binaId: number; geometri: CokgenGeo
           <CatiCizimi geometri={geometri} />
         ) : null}
       </div>
-      <figcaption className="px-2 py-1 text-[9px] text-slate-500">
+      <figcaption className="px-2 py-1 text-[9px] text-murekkep/55">
         {adres && !hata ? "Uydu görüntüsü: Esri, Maxar, Earthstar Geographics" : "Çatının ana hatları (OpenStreetMap)"}
       </figcaption>
     </figure>
@@ -117,39 +123,42 @@ export function RaporSayfasi({ binaId }: { binaId: number }) {
   const hazir = Boolean(detay && hesap);
 
   return (
-    <div className="min-h-dvh bg-slate-200 py-6 print:bg-white print:py-0">
-      <div className="yazdirma-gizle mx-auto mb-4 flex max-w-[210mm] items-center justify-between px-4 print:hidden">
-        <Link href="/" className="text-sm text-slate-700 hover:text-slate-900">
-          ← Haritaya dön
-        </Link>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          disabled={!hazir}
-          className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
-        >
-          📄 PDF olarak indir
+    <div className="min-h-dvh bg-gradient-to-br from-zemin via-zemin to-limon/35 py-6 print:bg-white print:py-0">
+      <div className="yazdirma-gizle mx-auto mb-4 flex max-w-[210mm] items-center justify-between gap-3 px-4 print:hidden">
+        <div className="flex items-center gap-3">
+          <GeriDugmesi etiket="Haritaya dön" href="/" />
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mercan-koyu">Rapor</p>
+            <p className="text-sm font-semibold text-murekkep">Ön fizibilite · A4</p>
+          </div>
+        </div>
+        <button type="button" onClick={() => window.print()} disabled={!hazir} className={ANA_DUGME}>
+          <Download className="h-4 w-4" aria-hidden />
+          PDF olarak indir
         </button>
       </div>
 
-      <article className="rapor-sayfasi mx-auto w-full max-w-[210mm] bg-white p-8 text-slate-900 shadow-xl print:max-w-none print:p-0 print:shadow-none">
-        {detayHatasi && <p className="text-sm text-red-700">Bina bulunamadı.</p>}
+      <article className="rapor-sayfasi mx-auto w-full max-w-[210mm] rounded-sm bg-white p-8 text-murekkep shadow-xl ring-1 ring-murekkep/5 print:max-w-none print:rounded-none print:p-0 print:shadow-none print:ring-0">
+        {detayHatasi && <p className="text-sm text-mercan-koyu">Bina bulunamadı.</p>}
 
-        <header className="flex items-start justify-between border-b-2 border-amber-400 pb-3">
+        <header className="flex items-start justify-between border-b-2 border-seftali pb-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">☀️ Çatı Radarı · Ön fizibilite raporu</p>
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-mercan-koyu">
+              <Sun className="h-3.5 w-3.5" aria-hidden />
+              Çatı Radarı · Ön fizibilite raporu
+            </p>
             <h1 className="mt-1 text-2xl font-bold">{ad}</h1>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-murekkep/55">
               {osbAdi} · OSM #{binaId}
               {detay && ` · ${alan(detay.alan_m2)} çatı`}
             </p>
           </div>
-          <div className="text-right text-xs text-slate-500">
+          <div className="text-right text-xs text-murekkep/55">
             <p>{bugun}</p>
             {typeof hesap?.uygunluk_skoru === "number" && (
               <p className="mt-1 text-lg font-bold text-emerald-700">
                 {Math.round(hesap.uygunluk_skoru)}
-                <span className="text-xs font-medium text-slate-500">/100 uygunluk</span>
+                <span className="text-xs font-medium text-murekkep/55">/100 uygunluk</span>
               </p>
             )}
           </div>
@@ -158,23 +167,23 @@ export function RaporSayfasi({ binaId }: { binaId: number }) {
         <section className="mt-4 grid grid-cols-[38%_1fr] gap-4">
           <div className="space-y-2">
             <UyduGorseli binaId={binaId} geometri={detay?.geometri} />
-            <div className="rounded-lg border border-slate-200 px-3 py-2 text-[11px] leading-snug">
+            <div className="rounded-lg border border-murekkep/10 px-3 py-2 text-[11px] leading-snug">
               <p className="font-semibold">Uydu kontrolü</p>
               {uydu ? (
-                <p className="text-slate-600">
+                <p className="text-murekkep/70">
                   {uydu.panel === "var"
                     ? `Çatıda panel görünüyor (yaklaşık ${yuzde(uydu.kaplama_orani)} kaplı).`
                     : uydu.panel === "yok"
                       ? "Çatıda panel görünmüyor."
                       : "Görüntüden emin olunamadı."}{" "}
-                  {uydu.aciklama} <span className="text-slate-400">(güven {yuzde(uydu.guven)}, {uydu.model})</span>
+                  {uydu.aciklama} <span className="text-murekkep/45">(güven {yuzde(uydu.guven)}, {uydu.model})</span>
                 </p>
               ) : (
-                <p className="text-slate-500">Bu çatı için uydu kontrolü yapılmadı.</p>
+                <p className="text-murekkep/55">Bu çatı için uydu kontrolü yapılmadı.</p>
               )}
             </div>
             {detay && (
-              <div className="rounded-lg border border-slate-200 px-3 py-2 text-[11px] leading-snug text-slate-600">
+              <div className="rounded-lg border border-murekkep/10 px-3 py-2 text-[11px] leading-snug text-murekkep/70">
                 {detay.verim_kwh_kwp && <p>Güneş verimi: {sayi(detay.verim_kwh_kwp)} kWh/kWp·yıl (PVGIS)</p>}
                 {detay.en_yakin_trafo && (
                   <p>
@@ -211,18 +220,18 @@ export function RaporSayfasi({ binaId }: { binaId: number }) {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">Hesaplanıyor…</p>
+              <p className="text-sm text-murekkep/55">Hesaplanıyor…</p>
             )}
 
             {yillar && yillar.length > 0 && hesap ? (
-              <div className="rounded-lg border border-slate-200 p-2">
+              <div className="rounded-lg border border-murekkep/10 p-2">
                 <p className="mb-1 text-xs font-semibold">{yillar.length} yıllık nakit akışı</p>
                 <div className="overflow-hidden">
                   <NakitAkisiGrafigi yillar={yillar} yatirim={hesap.yatirim_tl} />
                 </div>
               </div>
             ) : (
-              <p className="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-[11px] text-slate-500">
+              <p className="rounded-lg border border-dashed border-murekkep/20 px-3 py-2 text-[11px] text-murekkep/55">
                 25 yıllık nakit akışı hesabı yayına alınınca burada grafik görünecek.
               </p>
             )}
@@ -231,7 +240,7 @@ export function RaporSayfasi({ binaId }: { binaId: number }) {
 
         <section className="mt-4 grid grid-cols-2 gap-4">
           <div>
-            <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Kullanılan varsayımlar</h2>
+            <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-murekkep/55">Kullanılan varsayımlar</h2>
             <table className="w-full text-[11px]">
               <tbody>
                 {(Object.keys(varsayimlar) as (keyof Varsayimlar)[]).map((k) => {
@@ -239,8 +248,8 @@ export function RaporSayfasi({ binaId }: { binaId: number }) {
                   const v = varsayimlar[k];
                   if (!tanim || typeof v !== "number") return null;
                   return (
-                    <tr key={k} className="border-b border-slate-100">
-                      <td className="py-0.5 pr-2 text-slate-600">{tanim[0]}</td>
+                    <tr key={k} className="border-b border-murekkep/5">
+                      <td className="py-0.5 pr-2 text-murekkep/70">{tanim[0]}</td>
                       <td className="py-0.5 text-right font-medium">{tanim[1](v)}</td>
                     </tr>
                   );
@@ -249,19 +258,19 @@ export function RaporSayfasi({ binaId }: { binaId: number }) {
             </table>
           </div>
           <div className="space-y-2 text-[11px] leading-snug">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dikkat edilecekler</h2>
-            <ul className="list-disc space-y-1 pl-4 text-slate-700">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-murekkep/55">Dikkat edilecekler</h2>
+            <ul className="list-disc space-y-1 pl-4 text-murekkep/80">
               <li>Çatı statiği: panel ve ray için yaklaşık 12-15 kg/m² ek yük; kesin karar statik raporla verilir.</li>
               <li>Mevcut tesisat ve trafo kapasitesi şebeke bağlantısını sınırlayabilir.</li>
               <li>Geri ödeme basit hesaptır (ilk yıl tasarrufu); uzun dönem değerler bakım ve verim kaybını içerir.</li>
             </ul>
-            <h2 className="pt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Sonraki adım</h2>
-            <p className="text-slate-700">Yerinde keşif ve en az iki GES firmasından teklif.</p>
+            <h2 className="pt-1 text-xs font-semibold uppercase tracking-wide text-murekkep/55">Sonraki adım</h2>
+            <p className="text-murekkep/80">Yerinde keşif ve en az iki GES firmasından teklif.</p>
           </div>
         </section>
 
-        <footer className="mt-5 border-t border-slate-200 pt-2 text-[9px] leading-snug text-slate-500">
-          <p className="font-semibold text-slate-700">
+        <footer className="mt-5 border-t border-murekkep/10 pt-2 text-[9px] leading-snug text-murekkep/55">
+          <p className="font-semibold text-murekkep/80">
             Bu bir ön taramadır. Çatı statiği, mevcut tesisat ve şebeke bağlantısı için yerinde keşif gerekir.
           </p>
           <p>

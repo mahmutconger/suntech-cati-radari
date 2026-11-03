@@ -1,11 +1,12 @@
 import { skorRengi } from "@/lib/renk";
+import { DEGER_YUZEY, VURGU_YUZEY } from "@/lib/stil";
 
-/** Etiket + değer kutucuğu (kart ve OSB paneli). */
+/** Etiket + değer kutucuğu (kart ve OSB paneli). Vurgulu olan limon→şeftali degradesiyle öne çıkar. */
 export function Deger({ etiket, deger, vurgu = false }: { etiket: string; deger: string; vurgu?: boolean }) {
   return (
-    <div className={`rounded-xl px-3 py-2 ${vurgu ? "bg-amber-400/15 ring-1 ring-amber-400/30" : "bg-white/5"}`}>
-      <p className="text-[11px] text-slate-400">{etiket}</p>
-      <p className={`text-sm font-semibold ${vurgu ? "text-amber-200" : "text-slate-100"}`}>{deger}</p>
+    <div className={`rounded-xl px-3 py-2 ${vurgu ? VURGU_YUZEY : DEGER_YUZEY}`}>
+      <p className={`text-[11px] ${vurgu ? "text-murekkep/70" : "text-murekkep/55"}`}>{etiket}</p>
+      <p className="text-sm font-semibold text-murekkep">{deger}</p>
     </div>
   );
 }
@@ -21,9 +22,9 @@ export function SkorRozeti({ skor, kucuk = false }: { skor: number; kucuk?: bool
   return (
     <span
       title="Uygunluk skoru: geri ödeme, güneş verimi, sistem büyüklüğü, trafoya uzaklık, mevcut panel"
-      className={`inline-flex shrink-0 items-baseline gap-0.5 rounded-full font-bold tabular-nums ${
+      className={`inline-flex shrink-0 items-baseline gap-0.5 rounded-full font-bold tabular-nums ring-1 ring-murekkep/10 ${
         kucuk ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-sm"
-      } ${koyu ? "text-white" : "text-slate-900"}`}
+      } ${koyu ? "text-white" : "text-murekkep"}`}
       style={{ backgroundColor: skorRengi(deger) }}
     >
       {deger}

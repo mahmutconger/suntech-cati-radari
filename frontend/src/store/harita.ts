@@ -1,6 +1,7 @@
 // Arayüz durumu (Zustand). Sunucu verisi burada tutulmaz; o TanStack Query'de.
 
 import { create } from "zustand";
+import type { Bolum } from "@/lib/bolumler";
 import { VARSAYILAN_VARSAYIMLAR, type KatmanTuru } from "@/lib/sabitler";
 import type { Tuketim, Varsayimlar } from "@/types/gecici";
 
@@ -29,6 +30,11 @@ interface HaritaDurumu {
   tuketimler: Record<number, Tuketim>;
   sohbetAcik: boolean;
   trafoKatmani: boolean;
+  /**
+   * Haritadaki bina düğmeleriyle panelde gidilen bölüm. `sayac` her basışta artar;
+   * aynı düğmeye yeniden basınca panel yine o bölüme kayar ve vurgu tekrar oynar.
+   */
+  odak: { bolum: Bolum; sayac: number } | null;
 
   osbSec: (osb: string) => void;
   binaSec: (id: number | null, odaklan?: boolean) => void;
@@ -43,6 +49,8 @@ interface HaritaDurumu {
   tuketimAyarla: (binaId: number, tuketim: Tuketim | null) => void;
   sohbetAyarla: (acik: boolean) => void;
   trafoKatmaniAyarla: (acik: boolean) => void;
+  /** Paneli ilgili bölüme kaydırır; telefonda çekmeceyi tam açar. */
+  bolumeGit: (bolum: Bolum) => void;
 }
 
 /** Yalnızca `ornek`te olan anahtarları tutar. */
@@ -64,14 +72,18 @@ export const useHaritaDurumu = create<HaritaDurumu>((set) => ({
   tuketimler: {},
   sohbetAcik: false,
   trafoKatmani: false,
+  odak: null,
 
-  osbSec: (seciliOsb) => set({ seciliOsb, seciliBinaId: null, odaklanilacakBinaId: null, cekmece: "kapali" }),
+  osbSec: (seciliOsb) =>
+    set({ seciliOsb, seciliBinaId: null, odaklanilacakBinaId: null, cekmece: "kapali", odak: null }),
   binaSec: (id, odaklan = false) =>
-    set({
+    set((d) => ({
       seciliBinaId: id,
       odaklanilacakBinaId: odaklan ? id : null,
       cekmece: id === null ? "kapali" : "yarim",
-    }),
+      // Başka binaya geçince bölüm vurgusu sıfırlanır.
+      odak: id !== null && id === d.seciliBinaId ? d.odak : null,
+    })),
   odaklanmaBitti: () => set({ odaklanilacakBinaId: null }),
   katmanDegistir: (katman) => set({ katman }),
   renkModuAyarla: (renkModu) => set({ renkModu }),
@@ -98,4 +110,5 @@ export const useHaritaDurumu = create<HaritaDurumu>((set) => ({
     }),
   sohbetAyarla: (sohbetAcik) => set({ sohbetAcik }),
   trafoKatmaniAyarla: (trafoKatmani) => set({ trafoKatmani }),
+  bolumeGit: (bolum) => set((d) => ({ odak: { bolum, sayac: (d.odak?.sayac ?? 0) + 1 }, cekmece: "tam" })),
 }));

@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 const Harita = dynamic(() => import("./Harita"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-slate-900 text-sm text-slate-300">
+    <div className="flex h-full w-full items-center justify-center bg-[#f3efe6] text-sm text-murekkep/60">
       Harita yükleniyor…
     </div>
   ),

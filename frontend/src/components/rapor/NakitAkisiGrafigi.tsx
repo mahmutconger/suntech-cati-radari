@@ -19,10 +19,10 @@ export function NakitAkisiGrafigi({ yillar, yatirim }: { yillar: FinansYili[]; y
   return (
     <div>
       <ComposedChart width={410} height={190} data={veri} margin={{ top: 8, right: 12, bottom: 4, left: 8 }}>
-        <CartesianGrid stroke="#e2e8f0" vertical={false} />
-        <XAxis dataKey="yil" tick={{ fontSize: 10, fill: "#475569" }} tickLine={false} interval={4} minTickGap={8} />
-        <YAxis tickFormatter={milyon} tick={{ fontSize: 10, fill: "#475569" }} width={52} tickLine={false} />
-        <ReferenceLine y={0} stroke="#64748b" />
+        <CartesianGrid stroke="#ece7dd" vertical={false} />
+        <XAxis dataKey="yil" tick={{ fontSize: 10, fill: "#6b655c" }} tickLine={false} interval={4} minTickGap={8} />
+        <YAxis tickFormatter={milyon} tick={{ fontSize: 10, fill: "#6b655c" }} width={52} tickLine={false} />
+        <ReferenceLine y={0} stroke="#8a847a" />
         {geriDonusYili !== undefined && (
           <ReferenceLine
             x={geriDonusYili}
@@ -31,16 +31,16 @@ export function NakitAkisiGrafigi({ yillar, yatirim }: { yillar: FinansYili[]; y
             label={{ value: `${geriDonusYili}. yıl`, position: "insideTopLeft", fontSize: 10, fill: "#15803d" }}
           />
         )}
-        <Bar dataKey="net" fill="#f59e0b" isAnimationActive={false} />
-        <Line dataKey="kumulatif" stroke="#0f172a" strokeWidth={2} dot={false} isAnimationActive={false} />
+        <Bar dataKey="net" fill="#ecab69" isAnimationActive={false} />
+        <Line dataKey="kumulatif" stroke="#1c1a17" strokeWidth={2} dot={false} isAnimationActive={false} />
       </ComposedChart>
-      <p className="mt-1 flex gap-4 text-[10px] text-slate-500">
+      <p className="mt-1 flex gap-4 text-[10px] text-murekkep/55">
         <span>
-          <span className="mr-1 inline-block h-2 w-3 bg-amber-500 align-middle" />
+          <span className="mr-1 inline-block h-2 w-3 bg-seftali align-middle" />
           Yıllık net akış (tasarruf − bakım)
         </span>
         <span>
-          <span className="mr-1 inline-block h-0.5 w-4 bg-slate-900 align-middle" />
+          <span className="mr-1 inline-block h-0.5 w-4 bg-murekkep align-middle" />
           Kümülatif (yatırım dahil)
         </span>
       </p>

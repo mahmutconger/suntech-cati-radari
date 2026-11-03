@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { components } from "@/types/api";
 
 export type VarsayimKaynagi = components["schemas"]["VarsayimKaynagiDto"];
@@ -296,34 +295,19 @@ const ORNEK_CATILAR = [
 
 export function VarsayimlarIcerigi() {
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <header className="space-y-2">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 text-xs font-medium text-amber-300 hover:underline"
-        >
-          ← Haritaya ve analize dön
-        </Link>
-        <h1 className="text-2xl font-bold text-slate-50 sm:text-3xl">
-          Varsayımlar, Hesap Yöntemi ve Kaynaklar
-        </h1>
-        <p className="max-w-3xl text-sm leading-relaxed text-slate-400">
-          Çatı Radarı’ndaki bütün rakamlar deterministik hesap motorundan üretilir.
-          Aşağıdaki tüm varsayımlar ilk kaba tarama ve 25 yıllık finansal analiz
-          içindir; ana ekrandaki kaydırıcılarla değiştirilebilir.
-        </p>
-      </header>
+    // Başlık ve açıklama sayfanın dash kabuğunda (app/varsayimlar/page.tsx).
+    <div className="space-y-6">
 
       {/* Varsayımlar ve Kaynaklar Tablosu */}
-      <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-        <div className="border-b border-white/10 px-4 py-3 sm:px-6">
-          <h2 className="text-base font-semibold text-slate-100">
+      <section className="overflow-hidden rounded-2xl border border-murekkep/10 bg-white/85">
+        <div className="border-b border-murekkep/10 bg-gradient-to-r from-limon/40 to-seftali/25 px-4 py-3 sm:px-6">
+          <h2 className="text-base font-semibold text-murekkep">
             1. Varsayılan Değerler ve Resmî Kaynaklar
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="border-b border-white/10 bg-white/[0.02] text-[11px] uppercase tracking-wider text-slate-400">
+          <table className="w-full text-left text-xs text-murekkep/80">
+            <thead className="border-b border-murekkep/10 bg-murekkep/[0.03] text-[11px] uppercase tracking-wider text-murekkep/55">
               <tr>
                 <th className="px-4 py-3">Varsayım</th>
                 <th className="px-4 py-3">Varsayılan Değer</th>
@@ -332,19 +316,21 @@ export function VarsayimlarIcerigi() {
                 <th className="px-4 py-3">Tarih</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-murekkep/5">
               {KAYNAKLAR.map((k) => (
-                <tr key={k.anahtar} className="hover:bg-white/[0.02]">
-                  <td className="px-4 py-3 font-medium text-slate-100">{k.ad}</td>
-                  <td className="px-4 py-3 font-semibold text-amber-300">{k.deger}</td>
-                  <td className="px-4 py-3 text-slate-400">{k.aralik}</td>
+                <tr key={k.anahtar} className="hover:bg-limon/15">
+                  <td className="px-4 py-3 font-medium text-murekkep">{k.ad}</td>
+                  <td className="px-4 py-3 font-semibold text-murekkep">
+                    <span className="rounded-md bg-limon/45 px-1.5 py-0.5">{k.deger}</span>
+                  </td>
+                  <td className="px-4 py-3 text-murekkep/55">{k.aralik}</td>
                   <td className="px-4 py-3 leading-relaxed">
-                    <p className="text-slate-200">{k.kaynak}</p>
+                    <p className="text-murekkep/85">{k.kaynak}</p>
                     {k.aciklama && (
-                      <p className="mt-0.5 text-[11px] text-slate-400">{k.aciklama}</p>
+                      <p className="mt-0.5 text-[11px] text-murekkep/55">{k.aciklama}</p>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-400">
+                  <td className="whitespace-nowrap px-4 py-3 text-murekkep/55">
                     {k.tarih}
                   </td>
                 </tr>
@@ -356,11 +342,11 @@ export function VarsayimlarIcerigi() {
 
       {/* Deterministik Formüller */}
       <section className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-3">
-          <h2 className="text-base font-semibold text-slate-100">
+        <div className="rounded-2xl border border-murekkep/10 bg-white/85 p-5 space-y-3">
+          <h2 className="text-base font-semibold text-murekkep">
             2. Yıllık Hesap, 25Y Finans ve Skor Formülleri
           </h2>
-          <pre className="overflow-x-auto rounded-xl bg-slate-900/90 p-3.5 text-xs leading-relaxed text-amber-200">
+          <pre className="overflow-x-auto rounded-xl bg-murekkep p-3.5 text-xs leading-relaxed text-limon">
 {`kwp       = alan_m2 × kullanilabilir_oran ÷ m2_kwp
 uretim_1  = kwp × verim                                     [kWh/yıl]
 tasarruf_1= uretim_1 × (oz × tarife + (1 − oz) × fazla)     [TL/yıl]
@@ -378,20 +364,20 @@ LCOE      = [yatirim + Σ bakim_t/(1+r)^t] ÷ [Σ uretim_t/(1+r)^t]
 skor      = %40 geri_ödeme + %20 verim + %20 kWp
             + %10 trafo_mesafesi + %10 mevcut_GES_yok`}
           </pre>
-          <p className="text-xs leading-relaxed text-slate-400">
+          <p className="text-xs leading-relaxed text-murekkep/60">
             1 Mayıs 2026’dan itibaren sanayi tesislerinde elektrik mahsuplaşması saatlik
             yapılmaktadır (Resmî Gazete, 2 Nisan 2026, sayı 33212). Trafo mesafesi verisi
             olmayan binalarda o bileşen nötr (5/10 puan) kabul edilir.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-3">
-          <h2 className="text-base font-semibold text-slate-100">
+        <div className="rounded-2xl border border-murekkep/10 bg-white/85 p-5 space-y-3">
+          <h2 className="text-base font-semibold text-murekkep">
             3. Referans Kontrol Tablosu (1.340 kWh/kWp, %80 Öz Tüketim)
           </h2>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="border-b border-white/10 text-[11px] text-slate-400">
+            <table className="w-full text-left text-xs text-murekkep/80">
+              <thead className="border-b border-murekkep/10 text-[11px] text-murekkep/55">
                 <tr>
                   <th className="py-2 pr-2">Sistem</th>
                   <th className="py-2 px-2">Üretim</th>
@@ -401,21 +387,21 @@ skor      = %40 geri_ödeme + %20 verim + %20 kWp
                   <th className="py-2 pl-2">CO₂</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-murekkep/5">
                 {ORNEK_CATILAR.map((o) => (
                   <tr key={o.sistem}>
-                    <td className="py-2 pr-2 font-medium text-slate-100">{o.sistem}</td>
+                    <td className="py-2 pr-2 font-medium text-murekkep">{o.sistem}</td>
                     <td className="py-2 px-2">{o.uretim}</td>
-                    <td className="py-2 px-2 text-amber-300">{o.tasarruf}</td>
+                    <td className="py-2 px-2 font-medium text-murekkep">{o.tasarruf}</td>
                     <td className="py-2 px-2">{o.yatirim}</td>
-                    <td className="py-2 px-2 font-semibold text-emerald-300">{o.geriOdeme}</td>
+                    <td className="py-2 px-2 font-semibold text-emerald-700">{o.geriOdeme}</td>
                     <td className="py-2 pl-2">{o.co2}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="text-[11px] leading-relaxed text-slate-400">
+          <p className="text-[11px] leading-relaxed text-murekkep/55">
             * Bu bir ön taramadır. Çatı statiği (12–15 kg/m² yayılı ek yük), mevcut
             elektrik tesisatı ve trafo bağlantı kapasitesi için yerinde mühendislik keşfi
             yapılmalıdır.

@@ -26,7 +26,11 @@ function firebaseUygulamasi(): FirebaseApp | null {
 
 export function firebaseAuth(): Auth | null {
   const app = firebaseUygulamasi();
-  return app ? getAuth(app) : null;
+  if (!app) return null;
+  const auth = getAuth(app);
+  // Doğrulama ve şifre sıfırlama e-postaları Türkçe gitsin.
+  auth.languageCode = "tr";
+  return auth;
 }
 
 /** Oturum açıksa backend'e gönderilecek Firebase ID token'ı; değilse null. */

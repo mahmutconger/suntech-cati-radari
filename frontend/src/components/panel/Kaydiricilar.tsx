@@ -5,7 +5,9 @@
 // "Gelişmiş" kaydırıcılar (§22) yalnızca backend o alanları bildiriyorsa görünür.
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { BAG, KART } from "@/lib/stil";
 import { useBackendVarsayimlari } from "@/hooks/veri";
 import { useHaritaDurumu } from "@/store/harita";
 import type { Varsayimlar } from "@/types/gecici";
@@ -138,8 +140,8 @@ function Kaydirici({ tanim }: { tanim: KaydiriciTanimi }) {
   return (
     <label className="block">
       <span className="flex items-baseline justify-between text-xs">
-        <span className="font-medium text-slate-200">{tanim.etiket}</span>
-        <span className="font-semibold tabular-nums text-amber-300">{tanim.bicim(deger)}</span>
+        <span className="font-medium text-murekkep">{tanim.etiket}</span>
+        <span className="rounded-full bg-limon/50 px-2 py-0.5 font-semibold tabular-nums text-murekkep">{tanim.bicim(deger)}</span>
       </span>
       <input
         type="range"
@@ -148,30 +150,44 @@ function Kaydirici({ tanim }: { tanim: KaydiriciTanimi }) {
         step={tanim.adim}
         value={Math.min(max, Math.max(min, deger))}
         onChange={(e) => guncelle({ [tanim.alan]: Number(e.target.value) })}
-        className="mt-1.5 w-full accent-amber-400"
+        className="mt-1.5 w-full accent-seftali"
       />
-      <span className="block text-[11px] leading-snug text-slate-500">{tanim.aciklama}</span>
+      <span className="block text-[11px] leading-snug text-murekkep/50">{tanim.aciklama}</span>
     </label>
   );
 }
 
 export function Kaydiricilar({ varsayilanAcik = false }: { varsayilanAcik?: boolean }) {
   const [acik, setAcik] = useState(varsayilanAcik);
+  // Haritadaki "Varsayımları düzenle" düğmesi kutuyu açar.
+  useEffect(
+    () =>
+      useHaritaDurumu.subscribe((d, onceki) => {
+        if (d.odak && d.odak !== onceki.odak && d.odak.bolum === "varsayim") setAcik(true);
+      }),
+    [],
+  );
   const [gelismisAcik, setGelismisAcik] = useState(false);
   const varsayimlar = useHaritaDurumu((d) => d.varsayimlar);
   const sifirla = useHaritaDurumu((d) => d.varsayimlariSifirla);
   const gelismisler = GELISMIS.filter((t) => typeof varsayimlar[t.alan] === "number");
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
+    <section className={KART}>
       <button
         type="button"
         onClick={() => setAcik(!acik)}
         aria-expanded={acik}
         className="flex w-full items-center justify-between px-4 py-3 text-left"
       >
-        <span className="text-sm font-semibold text-slate-100">Varsayımlar</span>
-        <span className="text-xs text-slate-400">{acik ? "Gizle ▲" : "Değiştir ▼"}</span>
+        <span className="flex items-center gap-2 text-sm font-semibold text-murekkep">
+          <SlidersHorizontal className="h-4 w-4 text-murekkep/60" aria-hidden />
+          Varsayımlar
+        </span>
+        <span className="flex items-center gap-1 text-xs text-murekkep/55">
+          {acik ? "Gizle" : "Değiştir"}
+          <ChevronDown className={`h-4 w-4 transition-transform ${acik ? "rotate-180" : ""}`} aria-hidden />
+        </span>
       </button>
       {acik && (
         <div className="space-y-4 px-4 pb-4">
@@ -180,15 +196,15 @@ export function Kaydiricilar({ varsayilanAcik = false }: { varsayilanAcik?: bool
           ))}
 
           {gelismisler.length > 0 && (
-            <div className="rounded-xl border border-white/10">
+            <div className="rounded-xl border border-murekkep/10 bg-murekkep/[0.02]">
               <button
                 type="button"
                 onClick={() => setGelismisAcik(!gelismisAcik)}
                 aria-expanded={gelismisAcik}
                 className="flex w-full items-center justify-between px-3 py-2 text-left text-xs"
               >
-                <span className="font-semibold text-slate-200">Gelişmiş (25 yıllık finans)</span>
-                <span className="text-slate-400">{gelismisAcik ? "▲" : "▼"}</span>
+                <span className="font-semibold text-murekkep">Gelişmiş (25 yıllık finans)</span>
+                <ChevronDown className={`h-4 w-4 text-murekkep/55 transition-transform ${gelismisAcik ? "rotate-180" : ""}`} aria-hidden />
               </button>
               {gelismisAcik && (
                 <div className="space-y-4 px-3 pb-3">
@@ -201,10 +217,11 @@ export function Kaydiricilar({ varsayilanAcik = false }: { varsayilanAcik?: bool
           )}
 
           <div className="flex items-center justify-between pt-1 text-xs">
-            <button type="button" onClick={sifirla} className="rounded-full px-2 py-1 text-slate-300 hover:bg-white/10">
+            <button type="button" onClick={sifirla} className="flex items-center gap-1.5 rounded-full px-2 py-1 text-murekkep/70 hover:bg-murekkep/5">
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden />
               Varsayılana dön
             </button>
-            <Link href="/varsayimlar" className="text-amber-300 hover:underline">
+            <Link href="/varsayimlar" className={BAG}>
               Kaynaklar ve tarihler →
             </Link>
           </div>
