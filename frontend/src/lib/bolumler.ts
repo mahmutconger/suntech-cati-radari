@@ -1,7 +1,17 @@
 // Seçili binanın çevresindeki beş düğme ve sağ paneldeki karşılık gelen bölümler.
 // Her düğme bir hedef bölüme gider; birbiriyle ilişkili bölümler de "İlgili" olarak işaretlenir.
 
-import { Calculator, DollarSign, FileChartColumn, Landmark, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import {
+  Calculator,
+  DollarSign,
+  FileChartColumn,
+  Landmark,
+  LayoutGrid,
+  ListOrdered,
+  Satellite,
+  SlidersHorizontal,
+  type LucideIcon,
+} from "lucide-react";
 
 /** Haritadaki düğmelerin gittiği bölümler. */
 export type Bolum = "finans" | "simulasyon" | "kredi" | "rapor" | "varsayim";
@@ -67,3 +77,51 @@ export const BOLUMLER: Record<Bolum, BolumTanimi> = {
 
 /** Düğmelerin binanın çevresindeki sırası: sol üst, sağ üst, sağ alt, sol alt, alt orta. */
 export const BOLUM_SIRASI: Bolum[] = ["finans", "simulasyon", "kredi", "rapor", "varsayim"];
+
+// --- Panel sekmeleri ---
+// Birbirinden bağımsız bölümler ayrı sekmelerde durur; panel tek seferde tek konuya odaklanır.
+
+/** Çatı seçiliyken panelin sekmeleri. */
+export type CatiSekmesi = "ozet" | "finans" | "simulasyon" | "uydu" | "rapor" | "varsayim";
+
+/** Çatı seçili değilken (OSB özeti) panelin sekmeleri. */
+export type OsbSekmesi = "ozet" | "liste" | "varsayim";
+
+export interface SekmeTanimi<T extends string> {
+  ad: T;
+  etiket: string;
+  /** Dar panelde (400 px) görünen kısa ad; yoksa etiket. */
+  kisa?: string;
+  Ikon: LucideIcon;
+}
+
+export const CATI_SEKMELERI: SekmeTanimi<CatiSekmesi>[] = [
+  { ad: "ozet", etiket: "Özet", Ikon: LayoutGrid },
+  { ad: "finans", etiket: "Finans", Ikon: DollarSign },
+  { ad: "simulasyon", etiket: "Simülasyon", kisa: "Saatlik", Ikon: Calculator },
+  { ad: "uydu", etiket: "Uydu", Ikon: Satellite },
+  { ad: "rapor", etiket: "Rapor", Ikon: FileChartColumn },
+  { ad: "varsayim", etiket: "Varsayım", Ikon: SlidersHorizontal },
+];
+
+export const OSB_SEKMELERI: SekmeTanimi<OsbSekmesi>[] = [
+  { ad: "ozet", etiket: "Özet", Ikon: LayoutGrid },
+  { ad: "liste", etiket: "İlk 20 çatı", kisa: "İlk 20", Ikon: ListOrdered },
+  { ad: "varsayim", etiket: "Varsayımlar", Ikon: SlidersHorizontal },
+];
+
+/** Her bölüm hangi çatı sekmesinde duruyor (haritadaki düğmeler doğru sekmeyi açar). */
+export const BOLUM_SEKMESI: Record<PanelBolumAdi, CatiSekmesi> = {
+  ozet: "ozet",
+  tuketim: "ozet",
+  finans: "finans",
+  simulasyon: "simulasyon",
+  nakit: "simulasyon",
+  pil: "simulasyon",
+  sebeke: "simulasyon",
+  kredi: "simulasyon",
+  statik: "simulasyon",
+  uydu: "uydu",
+  rapor: "rapor",
+  varsayim: "varsayim",
+};

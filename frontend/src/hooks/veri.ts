@@ -257,6 +257,8 @@ export function useUyduKontrolu(binaId: number) {
   const istemci = useQueryClient();
   const { data: onbellek } = useUyduOnbellegi(binaId);
   const mutasyon = useMutation({
+    // Haritanın ortasındaki işlem göstergesi bu anahtarı izler.
+    mutationKey: ["uydu", binaId],
     mutationFn: () => (SAHTE_VERI ? bekle(sahteUydu(binaId), 1500) : api.post<UyduSonucu>(`/uydu/${binaId}`)),
     onSuccess: (sonuc) => {
       istemci.setQueryData(["uydu", binaId], sonuc);

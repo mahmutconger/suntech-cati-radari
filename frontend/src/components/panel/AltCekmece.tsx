@@ -45,7 +45,9 @@ export function AltCekmece({ baslik, children }: { baslik: string; children: Rea
         <span className="h-1.5 w-10 rounded-full bg-murekkep/20" />
         <span className="text-sm font-semibold text-murekkep">{baslik}</span>
       </button>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">{children}</div>
+      <div className="@container min-h-0 flex-1 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] [--panel-pay:1rem]">
+        {children}
+      </div>
     </div>
   );
 }

@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { Download, Sun } from "lucide-react";
+import { GunesYukleyici } from "@/components/ortak/GunesYukleyici";
 import { GeriDugmesi } from "@/components/ortak/GeriDugmesi";
 import { NakitAkisiGrafigi } from "@/components/rapor/NakitAkisiGrafigi";
 import { binaAdi } from "@/components/ortak/Deger";
@@ -124,6 +125,14 @@ export function RaporSayfasi({ binaId }: { binaId: number }) {
 
   return (
     <div className="min-h-dvh bg-gradient-to-br from-zemin via-zemin to-limon/35 py-6 print:bg-white print:py-0">
+      {/* Bina ve hesap gelene kadar ekranın ortasında dönen güneş */}
+      {!hazir && !detayHatasi && (
+        <div className="yazdirma-gizle pointer-events-none fixed inset-0 z-50 flex items-center justify-center print:hidden">
+          <div className="cam rounded-3xl px-8 py-6">
+            <GunesYukleyici metin="Rapor hazırlanıyor…" boyut={104} />
+          </div>
+        </div>
+      )}
       <div className="yazdirma-gizle mx-auto mb-4 flex max-w-[210mm] items-center justify-between gap-3 px-4 print:hidden">
         <div className="flex items-center gap-3">
           <GeriDugmesi etiket="Haritaya dön" href="/" />

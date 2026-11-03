@@ -14,8 +14,12 @@ import { useHaritaDurumu } from "@/store/harita";
 /** Başlıktaki her alanın yüksekliği. */
 export const BASLIK_YUKSEKLIGI = "h-12";
 
-/** Metin etiketleri yalnızca çok geniş ekranda (2xl) görünür; diğerlerinde ikon ve ipucu kalır. */
-export const BASLIK_ETIKETI = "hidden 2xl:inline";
+/**
+ * Metin etiketleri yalnızca çok geniş ekranda (2xl) görünür; diğerlerinde ikon ve ipucu kalır.
+ * Panel genişleyince (başlıkta `baslik-dar`) yazılar animasyonla kapanır (globals.css).
+ * Etiketin iç boşluğu varsa içteki bir span'a verilmeli; dıştaki kutu sıfıra kadar daralır.
+ */
+export const BASLIK_ETIKETI = "baslik-etiketi";
 
 const KATMAN_IKONU: Record<KatmanTuru, LucideIcon> = { uydu: Satellite, sokak: HaritaIkonu };
 

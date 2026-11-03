@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { Calculator, ChevronDown, Landmark } from "lucide-react";
+import { GunesYukleyici } from "@/components/ortak/GunesYukleyici";
 import { PanelBolumu } from "@/components/panel/PanelBolumu";
 import { api, SAHTE_VERI } from "@/lib/api";
 import { sayi, tl } from "@/lib/bicim";
@@ -197,7 +198,8 @@ export function SimulasyonPaneli({
   const [trafoKapasiteMwMetin, setTrafoKapasiteMwMetin] = useState<string>("");
   const gecikmeliTrafoMetin = useGeciktirilmisDeger(trafoKapasiteMwMetin, 450);
 
-  const [krediAcik, setKrediAcik] = useState<boolean>(false);
+  // Panel sekmeleri: kredi düğmesiyle simülasyon sekmesi ilk kez açılıyorsa kredi bölümü açık başlar.
+  const [krediAcik, setKrediAcik] = useState<boolean>(() => useHaritaDurumu.getState().odak?.bolum === "kredi");
   const [aylikFaizYuzde, setAylikFaizYuzde] = useState<number>(2.5);
   const [vadeAy, setVadeAy] = useState<number>(48);
   const [pesinatYuzde, setPesinatYuzde] = useState<number>(20);
@@ -330,7 +332,7 @@ export function SimulasyonPaneli({
     <section
       ref={kabukRef}
       aria-label="Saatlik simülasyon ve finansman"
-      className={`${KART} scroll-mt-4 text-xs text-murekkep/80`}
+      className={`${KART} scroll-mt-20 text-xs text-murekkep/80`}
     >
       <button
         type="button"
@@ -359,9 +361,7 @@ export function SimulasyonPaneli({
 
       {acik && (
         <div className="space-y-5 rounded-b-2xl border-t border-murekkep/10 bg-[#f7f4ec] px-3 pb-4 pt-4">
-          {isPending && !s && (
-            <p className="text-xs text-murekkep/55">Saatlik simülasyon hesaplanıyor…</p>
-          )}
+          {isPending && !s && <GunesYukleyici metin="Saatlik simülasyon hesaplanıyor…" boyut={72} className="py-10" />}
 
           {isError && (
             <p className="rounded-xl bg-mercan/10 px-3 py-2 text-xs text-mercan-koyu">

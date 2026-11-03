@@ -1,15 +1,18 @@
 "use client";
 
 // Yan panelin ve alt çekmecenin ortak içeriği: bina seçiliyse çatı kartı,
-// değilse OSB toplamları ve ilk 20 çatı (uygunluk skoru varsa "İlk gidilecek 20").
+// değilse OSB özeti. İkisi de sekmeli: OSB'de Özet, İlk 20 çatı (skor varsa "İlk gidilecek 20") ve Varsayımlar.
 
 import { useMemo, useState } from "react";
 import { CatiKarti } from "@/components/kart/CatiKarti";
 import { binaAdi, Deger, SkorRozeti } from "@/components/ortak/Deger";
 import { Kaydiricilar } from "@/components/panel/Kaydiricilar";
 import { PanelBolumu } from "@/components/panel/PanelBolumu";
+import { SekmeCubugu, SekmeIcerikleri } from "@/components/panel/Sekmeler";
+import { GunesYukleyici } from "@/components/ortak/GunesYukleyici";
 import { useBinalar, useSeciliOsb, useSkorVar, useTopluHesap } from "@/hooks/veri";
 import { SAHTE_VERI } from "@/lib/api";
+import { OSB_SEKMELERI } from "@/lib/bolumler";
 import { sayi, tl } from "@/lib/bicim";
 import { HATA, KART, SECILI_CIP } from "@/lib/stil";
 import { useHaritaDurumu } from "@/store/harita";
@@ -23,6 +26,8 @@ function OsbOzetiBolumu() {
   const osb = useSeciliOsb();
   const skorVar = useSkorVar();
   const binaSec = useHaritaDurumu((d) => d.binaSec);
+  const sekme = useHaritaDurumu((d) => d.osbSekmesi);
+  const sekmeSec = useHaritaDurumu((d) => d.osbSekmesiSec);
   const [secilenOlcut, setOlcut] = useState<ListeOlcutu>("skor");
   // Skor yoksa (eski backend) liste her zaman tasarrufa göre.
   const olcut: ListeOlcutu = skorVar ? secilenOlcut : "tasarruf";
@@ -38,17 +43,12 @@ function OsbOzetiBolumu() {
   }, [hesap, binalar, olcut]);
 
   if (isError) return <p className={HATA}>{error.message}</p>;
-  if (isPending || !hesap) return <p className="text-sm text-murekkep/55">Hesaplanıyor…</p>;
+  if (isPending || !hesap) return <GunesYukleyici metin="OSB hesaplanıyor…" className="py-24" />;
   const o = hesap.ozet;
 
-  return (
-    <section className={`space-y-4 transition-opacity ${isFetching ? "opacity-70" : ""}`}>
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mercan-koyu">OSB özeti</p>
-        <h2 className="text-xl font-bold tracking-tight text-murekkep">{osb?.ad ?? "Manisa OSB"} güneş potansiyeli</h2>
-        <p className="text-xs text-murekkep/55">{sayi(o.bina_sayisi)} çatı · 1.000 m² üstü · ilk kaba hesap</p>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
+  const ozet = (
+    <>
+      <div className="grid grid-cols-2 gap-2 @xl:grid-cols-4">
         <Deger etiket="Yıllık tasarruf" deger={`${tl(o.toplam_tasarruf_tl)}/yıl`} vurgu />
         <Deger etiket="Kurulabilir güç" deger={`${sayi(o.toplam_mwp, 1)} MWp`} vurgu />
         <Deger etiket="Yıllık üretim" deger={`${sayi(o.toplam_gwh, 1)} GWh`} />
@@ -59,54 +59,91 @@ function OsbOzetiBolumu() {
           <Deger etiket="Ortalama uygunluk" deger={`${sayi(o.ortalama_skor)}/100`} />
         )}
       </div>
-      <div className={`${KART} p-3`}>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-murekkep">
-            {olcut === "skor" ? "İlk gidilecek 20 çatı" : "En çok kazandıracak 20 çatı"}
-          </h3>
-          {skorVar && (
-            <div className="flex rounded-full bg-murekkep/5 p-0.5 text-[11px]">
-              {(
-                [
-                  ["skor", "Uygunluk"],
-                  ["tasarruf", "Tasarruf"],
-                ] as const
-              ).map(([deger, etiket]) => (
-                <button
-                  key={deger}
-                  type="button"
-                  onClick={() => setOlcut(deger)}
-                  aria-pressed={olcut === deger}
-                  className={`rounded-full px-2.5 py-0.5 font-medium ${
-                    olcut === deger ? SECILI_CIP : "text-murekkep/60 hover:bg-murekkep/5"
-                  }`}
-                >
-                  {etiket}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <ol className="space-y-1">
-          {ilk20.map((s, i) => (
-            <li key={s.bina_id}>
+      <button
+        type="button"
+        onClick={() => sekmeSec("liste")}
+        className={`${KART} flex w-full items-center justify-between gap-3 p-3 text-left text-sm font-semibold text-murekkep transition hover:bg-limon/20`}
+      >
+        {skorVar ? "İlk gidilecek 20 çatıyı gör" : "En çok kazandıracak 20 çatıyı gör"}
+        <span aria-hidden className="text-seftali">
+          →
+        </span>
+      </button>
+    </>
+  );
+
+  const liste = (
+    <div className={`${KART} p-3`}>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-murekkep">
+          {olcut === "skor" ? "İlk gidilecek 20 çatı" : "En çok kazandıracak 20 çatı"}
+        </h3>
+        {skorVar && (
+          <div className="flex rounded-full bg-murekkep/5 p-0.5 text-[11px]">
+            {(
+              [
+                ["skor", "Uygunluk"],
+                ["tasarruf", "Tasarruf"],
+              ] as const
+            ).map(([deger, etiket]) => (
               <button
+                key={deger}
                 type="button"
-                onClick={() => binaSec(s.bina_id, true)}
-                className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-limon/30"
+                onClick={() => setOlcut(deger)}
+                aria-pressed={olcut === deger}
+                className={`rounded-full px-2.5 py-0.5 font-medium ${
+                  olcut === deger ? SECILI_CIP : "text-murekkep/60 hover:bg-murekkep/5"
+                }`}
               >
-                <span className="w-5 text-right text-xs text-murekkep/40">{i + 1}</span>
-                <span className="flex-1 truncate text-murekkep">{binaAdi({ id: s.bina_id, ad: s.ad })}</span>
-                {olcut === "skor" && typeof s.uygunluk_skoru === "number" ? (
-                  <SkorRozeti skor={s.uygunluk_skoru} kucuk />
-                ) : (
-                  <span className="text-xs font-semibold text-murekkep/80">{tl(s.tasarruf_tl)}</span>
-                )}
+                {etiket}
               </button>
-            </li>
-          ))}
-        </ol>
+            ))}
+          </div>
+        )}
       </div>
+      <ol className="space-y-1 @2xl:columns-2 @2xl:gap-x-4">
+        {ilk20.map((s, i) => (
+          <li key={s.bina_id} className="break-inside-avoid">
+            <button
+              type="button"
+              onClick={() => binaSec(s.bina_id, true)}
+              className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-limon/30"
+            >
+              <span className="w-5 text-right text-xs text-murekkep/40">{i + 1}</span>
+              <span className="flex-1 truncate text-murekkep">{binaAdi({ id: s.bina_id, ad: s.ad })}</span>
+              {olcut === "skor" && typeof s.uygunluk_skoru === "number" ? (
+                <SkorRozeti skor={s.uygunluk_skoru} kucuk />
+              ) : (
+                <span className="text-xs font-semibold text-murekkep/80">{tl(s.tasarruf_tl)}</span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+
+  return (
+    <section className={`transition-opacity ${isFetching ? "opacity-70" : ""}`}>
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mercan-koyu">OSB özeti</p>
+        <h2 className="text-xl font-bold tracking-tight text-murekkep">{osb?.ad ?? "Manisa OSB"} güneş potansiyeli</h2>
+        <p className="text-xs text-murekkep/55">{sayi(o.bina_sayisi)} çatı · 1.000 m² üstü · ilk kaba hesap</p>
+      </div>
+      <SekmeCubugu etiket="OSB paneli" sekmeler={OSB_SEKMELERI} secili={sekme} onSec={sekmeSec} />
+      <SekmeIcerikleri
+        sekmeler={OSB_SEKMELERI}
+        secili={sekme}
+        icerikler={{
+          ozet,
+          liste,
+          varsayim: (
+            <PanelBolumu ad="varsayim">
+              <Kaydiricilar />
+            </PanelBolumu>
+          ),
+        }}
+      />
     </section>
   );
 }
@@ -120,10 +157,8 @@ export function PanelIcerigi() {
           Sahte veriyle çalışıyor (geliştirme)
         </p>
       )}
-      {seciliId !== null ? <CatiKarti binaId={seciliId} /> : <OsbOzetiBolumu />}
-      <PanelBolumu ad="varsayim">
-        <Kaydiricilar />
-      </PanelBolumu>
+      {/* key: başka binaya geçince sekme içerikleri (simülasyon ayarları) sıfırlanır */}
+      {seciliId !== null ? <CatiKarti key={seciliId} binaId={seciliId} /> : <OsbOzetiBolumu />}
     </div>
   );
 }

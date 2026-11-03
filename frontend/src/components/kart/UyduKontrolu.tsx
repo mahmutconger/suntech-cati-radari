@@ -3,7 +3,8 @@
 // "Uyduda kontrol et": Gemini çatının uydu görüntüsüne bakar; panel var mı, ne kadarını kaplıyor.
 // Yalnızca düğmeyle çalışır, çünkü her istek Gemini kotasından düşer.
 
-import { LoaderCircle, Satellite } from "lucide-react";
+import { Satellite } from "lucide-react";
+import { GunesIkonu } from "@/components/ortak/GunesYukleyici";
 import { useUyduKontrolu } from "@/hooks/veri";
 import { ApiHatasi } from "@/lib/api";
 import { IKINCIL_DUGME } from "@/lib/stil";
@@ -50,7 +51,7 @@ export function UyduKontrolu({ binaId }: { binaId: number }) {
         disabled={isPending}
         className={`${IKINCIL_DUGME} w-full`}
       >
-        {isPending ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <Satellite className="h-4 w-4" aria-hidden />}
+        {isPending ? <GunesIkonu boyut={22} /> : <Satellite className="h-4 w-4" aria-hidden />}
         {isPending ? "Gemini uydu görüntüsüne bakıyor…" : "Uyduda kontrol et"}
       </button>
       {isError && <p className="text-xs text-mercan-koyu">{hataMetni(error)}</p>}
