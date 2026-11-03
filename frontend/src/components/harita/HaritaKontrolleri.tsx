@@ -52,3 +52,23 @@ export function Lejant({ kompakt = false }: { kompakt?: boolean }) {
     </div>
   );
 }
+
+export function TrafoDugmesi() {
+  const acik = useHaritaDurumu((d) => d.trafoKatmani);
+  const ayarla = useHaritaDurumu((d) => d.trafoKatmaniAyarla);
+  return (
+    <button
+      type="button"
+      onClick={() => ayarla(!acik)}
+      aria-pressed={acik}
+      title="Trafo merkezlerini göster"
+      className={`rounded-full border px-3 py-1.5 text-xs font-medium shadow-lg backdrop-blur transition ${
+        acik
+          ? "border-violet-300/60 bg-violet-400 text-slate-900"
+          : "border-white/15 bg-slate-900/85 text-slate-200 hover:bg-slate-800"
+      }`}
+    >
+      ⚡ Trafo
+    </button>
+  );
+}

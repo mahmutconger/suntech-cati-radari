@@ -6,8 +6,10 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useCallback, useEffect, useRef } from "react";
-import { GeoJSON, MapContainer, TileLayer, useMap } from "react-leaflet";
-import { useBinalar, useHesapSozlugu } from "@/hooks/veri";
+import { CircleMarker, GeoJSON, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
+import { useBinalar, useHesapSozlugu, useTrafolar } from "@/hooks/veri";
+import { SAHTE_VERI } from "@/lib/api";
+import { sayi } from "@/lib/bicim";
 import { KATMANLAR } from "@/lib/sabitler";
 import { tasarrufRengi } from "@/lib/renk";
 import { SAHTE_OSB_SINIRI } from "@/mocks/veri";
@@ -16,6 +18,54 @@ import type { BinaOzelligi } from "@/types/gecici";
 
 /** Açılışta bütün OSB sınırı ekrana sığar (telefonda da). */
 const OSB_ACILIS_SINIRI = L.geoJSON(SAHTE_OSB_SINIRI).getBounds();
+
+/**
+ * Gerçek veride OSB sınırı için henüz uç yok; sahte sınır yanlış yerde durmasın diye
+ * açılışta harita binaların kapsadığı alana sığdırılır.
+ */
+function BinalaraSigdir() {
+  const harita = useMap();
+  const { data } = useBinalar();
+  const sigdirildi = useRef(false);
+  useEffect(() => {
+    if (SAHTE_VERI || sigdirildi.current || !data?.features.length) return;
+    harita.fitBounds(L.geoJSON(data as GeoJSON.FeatureCollection).getBounds(), { padding: [16, 16] });
+    sigdirildi.current = true;
+  }, [data, harita]);
+  return null;
+}
+
+function TrafoKatmani() {
+  const acik = useHaritaDurumu((d) => d.trafoKatmani);
+  const { data } = useTrafolar(acik);
+  if (!acik || !data) return null;
+  return (
+    <>
+      {data.features.map((t) => {
+        const [lon, lat] = t.geometry.coordinates;
+        const p = t.properties;
+        return (
+          <CircleMarker
+            key={t.id}
+            center={[lat, lon]}
+            radius={8}
+            pathOptions={{ color: "#0f172a", weight: 2, fillColor: "#a78bfa", fillOpacity: 0.95 }}
+          >
+            <Popup>
+              <strong>{p.ad || "Adsız trafo merkezi"}</strong>
+              <br />
+              {p.gerilim_kv ? `${sayi(p.gerilim_kv)} kV` : "Gerilim bilinmiyor"}
+              {p.isletmeci && ` · ${p.isletmeci}`}
+              <br />
+              Kalan kapasite:{" "}
+              {p.kalan_kapasite_mw !== null ? `${sayi(p.kalan_kapasite_mw, 1)} MW` : "girilmedi (TEİAŞ tablosu)"}
+            </Popup>
+          </CircleMarker>
+        );
+      })}
+    </>
+  );
+}
 
 /** Arama ya da listeden seçilen binaya uçar. */
 function Odaklayici() {
@@ -118,12 +168,16 @@ export default function Harita() {
         attribution={katman.atif}
         maxZoom={katman.maksimumYakinlastirma}
       />
-      <GeoJSON
-        data={SAHTE_OSB_SINIRI}
-        interactive={false}
-        style={{ color: "#38bdf8", weight: 2.5, dashArray: "6 6", fillOpacity: 0.04 }}
-      />
+      {SAHTE_VERI && (
+        <GeoJSON
+          data={SAHTE_OSB_SINIRI}
+          interactive={false}
+          style={{ color: "#38bdf8", weight: 2.5, dashArray: "6 6", fillOpacity: 0.04 }}
+        />
+      )}
       <Catilar />
+      <TrafoKatmani />
+      <BinalaraSigdir />
       <Odaklayici />
       <SecimTemizleyici />
     </MapContainer>
