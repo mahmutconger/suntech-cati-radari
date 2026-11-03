@@ -38,7 +38,7 @@ SUNUCULAR = [
 USER_AGENT = "suntech-cati-radari/0.1 (github.com/nazimhikmetsasi/suntech-cati-radari)"
 
 
-def overpass_cek() -> dict:
+def overpass_cek(sorgu: str = SORGU) -> dict:
     bekle = 5
     # trust_env=False: sistemdeki HTTPS_PROXY 503 döndürüyor
     with httpx.Client(trust_env=False, headers={"User-Agent": USER_AGENT}, timeout=150) as client:
@@ -46,7 +46,7 @@ def overpass_cek() -> dict:
             for url in SUNUCULAR:
                 try:
                     print(f"deneme {deneme}: {url}")
-                    r = client.post(url, data={"data": SORGU})
+                    r = client.post(url, data={"data": sorgu})
                     if r.status_code == 200:
                         return r.json()
                     print(f"  HTTP {r.status_code}")

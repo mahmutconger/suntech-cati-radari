@@ -8,7 +8,6 @@ Kullanım (backend/ klasöründe):
 from __future__ import annotations
 
 import json
-import math
 import sys
 import time
 from datetime import datetime, timezone
@@ -20,6 +19,7 @@ BACKEND = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND))
 
 from app.core.firebase import get_firestore_client  # noqa: E402
+from app.core.geo import haversine_km  # noqa: E402
 
 HAM_KLASOR = BACKEND / "data" / "raw" / "pvgis"
 TABAN = "https://re.jrc.ec.europa.eu/api/v5_3"
@@ -76,12 +76,6 @@ def izgara_cek() -> list[dict]:
                 })
                 print(f"{nokta_id(lat, lon)}: {noktalar[-1]['yillik_kwh_kwp']} kWh/kWp")
     return noktalar
-
-
-def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lon2 - lon1) / 2) ** 2
-    return 2 * 6371.0088 * math.asin(math.sqrt(a))
 
 
 def en_yakin(merkez: dict, noktalar: list[dict]) -> dict:

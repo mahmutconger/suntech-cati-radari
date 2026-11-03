@@ -245,8 +245,10 @@ pvgis_izgara/{id}
 trafo_merkezleri/{id}
   osm_id: number
   ad: string
-  nokta: GeoPoint
-  kalan_kapasite_mw: number
+  isletmeci: string
+  gerilim_kv: number
+  nokta: map         // {lat, lon}
+  kalan_kapasite_mw: number   // TEİAŞ tablosundan elle, şimdilik null
   kaynak: string
 
 kayitlar/{id}
@@ -350,7 +352,10 @@ Ana DTO'lar (alan adları 3 Kasım 10:30 hizalamasında kesinleşir):
 ```
 Varsayimlar  { kullanilabilir_oran, m2_kwp, tarife_tl_kwh, fazla_fiyat_tl_kwh,
                oz_tuketim_orani, maliyet_carpani, emisyon_faktoru }
-BinaOzet     { id, ad, alan_m2, merkez: [lon, lat] }
+BinaOzet     { id, ad, alan_m2, merkez: [lon, lat] }   // /binalar/yakin ek olarak mesafe_km
+BinaDetay    BinaOzet + { verim_kwh_kwp, mevcut_ges, pvgis_id, geometri: GeoJSON Polygon,
+               en_yakin_trafo: { id, ad, gerilim_kv, mesafe_km } }
+TrafoOzelligi GeoJSON Point, properties { id, ad, isletmeci, gerilim_kv, kalan_kapasite_mw, kaynak }
 HesapSonucu  { bina_id, kwp, uretim_mwh, tasarruf_tl, yatirim_tl,
                geri_odeme_yil, co2_ton }
 OsbOzeti     { bina_sayisi, toplam_mwp, toplam_gwh, toplam_tasarruf_tl,
