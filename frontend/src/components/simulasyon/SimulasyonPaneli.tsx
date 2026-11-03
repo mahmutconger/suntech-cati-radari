@@ -105,7 +105,7 @@ export interface YirmiBesYillikGrafikProps {
 /** 25 yıllık kümülatif nakit akışı grafiği (SimulasyonPaneli ve PDF rapor sayfası için). */
 export function YirmiBesYillikGrafik({
   veriler,
-  yukseklikSinifi = "h-40",
+  yukseklikSinifi = "h-52",
 }: YirmiBesYillikGrafikProps) {
   if (!veriler.length) return null;
 
@@ -413,7 +413,7 @@ export function SimulasyonPaneli({
                     <span className="text-sky-600">● Tüketim</span>
                   </span>
                 </div>
-                <div className="h-36 w-full">
+                <div className="h-52 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                       data={s.gunluk_profil}

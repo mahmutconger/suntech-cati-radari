@@ -13,7 +13,7 @@ import { YatayOzellikSeridi } from "./YatayOzellikSeridi";
 
 /**
  * Ürün görseli: uygulamanın ekran görüntüsü public/tanitim/ altına konunca yolunu buraya yazın
- * (ör. "/tanitim/uygulama.png"). null iken yerine uygulamayı andıran sade bir maket çizilir.
+ * (ör. "/tanitim/uygulama.png"). null iken hero bölümünde görsel gösterilmez.
  */
 const ONIZLEME_GORSELI: string | null = null;
 
@@ -159,19 +159,17 @@ export function TanitimEkrani({ sonra }: { sonra: string }) {
               </Link>
             </div>
 
-            <div className="relative mx-auto my-20 w-full max-w-6xl">
-              <div className="bg-grainy absolute inset-0 rounded bg-seftali opacity-20 shadow-lg blur-[10rem]" />
-              {ONIZLEME_GORSELI ? (
-                // eslint-disable-next-line @next/next/no-img-element -- tasarımdaki gibi düz görsel; boyutu ekran görüntüsüne göre değişir
+            {ONIZLEME_GORSELI && (
+              <div className="relative mx-auto my-20 w-full max-w-6xl">
+                <div className="bg-grainy absolute inset-0 rounded bg-seftali opacity-20 shadow-lg blur-[10rem]" />
+                {/* eslint-disable-next-line @next/next/no-img-element -- tasarımdaki gibi düz görsel */}
                 <img
                   src={ONIZLEME_GORSELI}
                   alt="Çatı Radarı harita ekranı"
                   className="relative h-auto w-full rounded shadow-md grayscale-100"
                 />
-              ) : (
-                <UygulamaMaketi />
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -213,48 +211,3 @@ export function TanitimEkrani({ sonra }: { sonra: string }) {
   );
 }
 
-/** Ekran görüntüsü gelene kadar: harita + yan panel düzenini andıran sade maket. */
-function UygulamaMaketi() {
-  return (
-    <div
-      aria-hidden
-      className="relative grid aspect-[16/9] w-full grid-cols-[1fr_30%] overflow-hidden rounded border border-murekkep/10 bg-zemin shadow-md"
-    >
-      <div
-        className="relative bg-murekkep/[0.04]"
-        style={{
-          // Harita ızgarası
-          backgroundImage:
-            "linear-gradient(rgb(28 26 23 / 0.06) 1px, transparent 1px), linear-gradient(90deg, rgb(28 26 23 / 0.06) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-        }}
-      >
-        <div className="absolute left-4 right-4 top-4 h-9 rounded-full bg-zemin shadow-sm" />
-        {[
-          ["18%", "30%", "22%", "16%", "bg-limon"],
-          ["46%", "26%", "18%", "20%", "bg-seftali"],
-          ["30%", "58%", "26%", "14%", "bg-limon"],
-          ["62%", "56%", "14%", "18%", "bg-mercan/70"],
-          ["12%", "70%", "12%", "12%", "bg-seftali/80"],
-        ].map(([sol, ust, en, boy, renk]) => (
-          <div
-            key={sol + ust}
-            className={`absolute rounded-sm opacity-80 ring-1 ring-murekkep/10 ${renk}`}
-            style={{ left: sol, top: ust, width: en, height: boy }}
-          />
-        ))}
-      </div>
-      <div className="space-y-3 border-l border-murekkep/10 p-4 text-left">
-        <div className="h-3 w-1/2 rounded bg-murekkep/15" />
-        <div className="h-6 w-3/4 rounded bg-murekkep/25" />
-        <div className="grid grid-cols-2 gap-2 pt-2">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-14 rounded-lg bg-murekkep/[0.05]" />
-          ))}
-        </div>
-        <div className="h-24 rounded-lg bg-limon/30" />
-        <div className="h-9 rounded-lg bg-limon" />
-      </div>
-    </div>
-  );
-}
