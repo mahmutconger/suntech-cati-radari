@@ -101,4 +101,5 @@ export async function cikisYap(): Promise<void> {
   const auth = firebaseAuth();
   if (auth) await signOut(auth);
   else useOturum.getState().ayarla(null);
+  window.location.href = "/giris";
 }
