@@ -4,7 +4,7 @@
 // masaüstünde sağda yan panel, telefonda alt çekmece.
 
 import { AramaCubugu } from "@/components/arama/AramaCubugu";
-import { KatmanSecici, Lejant } from "@/components/harita/HaritaKontrolleri";
+import { KatmanSecici, Lejant, TrafoDugmesi } from "@/components/harita/HaritaKontrolleri";
 import { HaritaYukleyici } from "@/components/harita/HaritaYukleyici";
 import { OturumMenusu } from "@/components/oturum/OturumMenusu";
 import { AltCekmece } from "@/components/panel/AltCekmece";
@@ -28,10 +28,11 @@ export function AnaEkran() {
       <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-wrap items-center gap-2 p-3 md:right-[400px] md:flex-nowrap md:p-4">
         <div className="pointer-events-auto order-1 flex items-center gap-2 rounded-full bg-slate-900/85 px-3 py-2 shadow-lg backdrop-blur">
           <span aria-hidden className="text-base">☀️</span>
-          <span className="text-sm font-bold tracking-tight text-amber-300">Çatı Radarı</span>
+          <span className="hidden text-sm font-bold tracking-tight text-amber-300 min-[400px]:inline">Çatı Radarı</span>
         </div>
         <div className="pointer-events-auto order-2 ml-auto flex items-center gap-2 md:order-3 md:ml-0">
           <KatmanSecici />
+          <TrafoDugmesi />
           <OturumMenusu />
         </div>
         <div className="pointer-events-auto order-3 w-full md:order-2 md:max-w-md">

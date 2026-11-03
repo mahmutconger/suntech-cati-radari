@@ -16,6 +16,7 @@ interface HaritaDurumu {
   /** Firmanın bina başına girdiği yıllık tüketim. */
   tuketimler: Record<number, Tuketim>;
   sohbetAcik: boolean;
+  trafoKatmani: boolean;
 
   binaSec: (id: number | null, odaklan?: boolean) => void;
   odaklanmaBitti: () => void;
@@ -25,6 +26,7 @@ interface HaritaDurumu {
   varsayimlariSifirla: () => void;
   tuketimAyarla: (binaId: number, tuketim: Tuketim | null) => void;
   sohbetAyarla: (acik: boolean) => void;
+  trafoKatmaniAyarla: (acik: boolean) => void;
 }
 
 export const useHaritaDurumu = create<HaritaDurumu>((set) => ({
@@ -35,6 +37,7 @@ export const useHaritaDurumu = create<HaritaDurumu>((set) => ({
   odaklanilacakBinaId: null,
   tuketimler: {},
   sohbetAcik: false,
+  trafoKatmani: false,
 
   binaSec: (id, odaklan = false) =>
     set({
@@ -55,4 +58,5 @@ export const useHaritaDurumu = create<HaritaDurumu>((set) => ({
       return { tuketimler };
     }),
   sohbetAyarla: (sohbetAcik) => set({ sohbetAcik }),
+  trafoKatmaniAyarla: (trafoKatmani) => set({ trafoKatmani }),
 }));

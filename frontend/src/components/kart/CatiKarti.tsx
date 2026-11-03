@@ -5,6 +5,8 @@
 import Link from "next/link";
 import { binaAdi, Deger } from "@/components/ortak/Deger";
 import { TuketimKutusu } from "@/components/kart/TuketimKutusu";
+import { UyduKontrolu } from "@/components/kart/UyduKontrolu";
+import { SimulasyonPaneli } from "@/components/simulasyon";
 import { useBinaDetay, useBinaHesabi, useBinalar, useKaydet } from "@/hooks/veri";
 import { alan, sayi, tl } from "@/lib/bicim";
 import { useHaritaDurumu } from "@/store/harita";
@@ -120,9 +122,17 @@ export function CatiKarti({ binaId }: { binaId: number }) {
         </p>
       )}
 
+      <UyduKontrolu key={`uydu-${binaId}`} binaId={binaId} />
+
       <TuketimKutusu key={binaId} binaId={binaId} />
 
-      {/* Mehmet'in SimulasyonPaneli (components/simulasyon/) gelince buraya eklenecek. */}
+      {/* Saatlik simülasyon, pil, kredi, statik ve şebeke: Mehmet'in bileşeni (components/simulasyon/). */}
+      <SimulasyonPaneli
+        key={`sim-${binaId}`}
+        binaId={binaId}
+        alanM2={bina.alan_m2}
+        yillikTuketimKwh={tuketim?.yillik_kwh ?? null}
+      />
 
       <KaydetDugmesi key={`kaydet-${binaId}`} binaId={binaId} />
 

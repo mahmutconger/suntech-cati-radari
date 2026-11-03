@@ -134,3 +134,34 @@ export interface BinaKoleksiyonu {
 export interface ApiHatasiGovdesi {
   hata: { kod: string; mesaj: string };
 }
+
+/** GET /trafo-merkezleri: GeoJSON noktaları */
+export interface TrafoOzellikleri {
+  id: number;
+  ad: string;
+  isletmeci: string;
+  gerilim_kv: number | null;
+  /** TEİAŞ tablosundan elle girilir; yoksa null */
+  kalan_kapasite_mw: number | null;
+  kaynak: string;
+}
+
+export interface TrafoKoleksiyonu {
+  type: "FeatureCollection";
+  features: {
+    type: "Feature";
+    id: number;
+    geometry: { type: "Point"; coordinates: Konum };
+    properties: TrafoOzellikleri;
+  }[];
+}
+
+/** POST /uydu/{bina_id} */
+export interface UyduSonucu {
+  bina_id: number;
+  panel: "var" | "yok" | "belirsiz";
+  /** 0-1 */
+  kaplama_orani: number;
+  /** 0-1 */
+  guven: number;
+}

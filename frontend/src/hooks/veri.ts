@@ -9,6 +9,7 @@ import { api, SAHTE_VERI } from "@/lib/api";
 import {
   bekle,
   SAHTE_BINALAR,
+  SAHTE_TRAFOLAR,
   sahteBinaDetay,
   sahteBinaHesap,
   sahteKayitEkle,
@@ -16,6 +17,7 @@ import {
   sahteKayitSil,
   sahteSohbet,
   sahteTopluHesap,
+  sahteUydu,
 } from "@/mocks/veri";
 import { useHaritaDurumu } from "@/store/harita";
 import { useOturum } from "@/store/oturum";
@@ -29,7 +31,9 @@ import type {
   SohbetIstegi,
   SohbetYaniti,
   TopluHesapYaniti,
+  TrafoKoleksiyonu,
   Tuketim,
+  UyduSonucu,
 } from "@/types/gecici";
 
 /** OSB'deki bütün binalar (~600). Backend bbox filtresi uygulamıyor, hepsini döndürüyor. */
@@ -39,6 +43,29 @@ export function useBinalar() {
     queryFn: () => (SAHTE_VERI ? bekle(SAHTE_BINALAR) : api.get<BinaKoleksiyonu>("/binalar")),
     staleTime: Infinity,
   });
+}
+
+export function useTrafolar(etkin: boolean) {
+  return useQuery({
+    queryKey: ["trafolar"],
+    queryFn: () => (SAHTE_VERI ? bekle(SAHTE_TRAFOLAR) : api.get<TrafoKoleksiyonu>("/trafo-merkezleri")),
+    enabled: etkin,
+    staleTime: Infinity,
+  });
+}
+
+/**
+ * Uydu kontrolü yalnızca düğmeyle çalışır (Gemini kotası). Sonuç bina başına önbellekte tutulur,
+ * aynı çatı bu oturumda tekrar sorulmaz; backend de sonucu Firestore'da saklıyor.
+ */
+export function useUyduKontrolu(binaId: number) {
+  const istemci = useQueryClient();
+  const onbellek = istemci.getQueryData<UyduSonucu>(["uydu", binaId]);
+  const mutasyon = useMutation({
+    mutationFn: () => (SAHTE_VERI ? bekle(sahteUydu(binaId), 1500) : api.post<UyduSonucu>(`/uydu/${binaId}`)),
+    onSuccess: (sonuc) => istemci.setQueryData(["uydu", binaId], sonuc),
+  });
+  return { ...mutasyon, sonuc: mutasyon.data ?? onbellek };
 }
 
 export function useBinaDetay(id: number | null) {

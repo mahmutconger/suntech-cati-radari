@@ -13,7 +13,9 @@ import type {
   SohbetIstegi,
   SohbetYaniti,
   TopluHesapYaniti,
+  TrafoKoleksiyonu,
   Tuketim,
+  UyduSonucu,
   Varsayimlar,
 } from "@/types/gecici";
 
@@ -181,6 +183,42 @@ export function sahteSohbet(istek: SohbetIstegi, v: Varsayimlar): SohbetYaniti {
       "Bu bir ön taramadır. Çatı statiği, mevcut tesisat ve şebeke bağlantısı için yerinde keşif gerekir.",
     araclar: [{ ad: "osb_ozeti", girdi: {} }, { ad: "sirala", girdi: { olcut: "tasarruf_tl", adet: 1 } }],
     model: "sahte",
+  };
+}
+
+export const SAHTE_TRAFOLAR: TrafoKoleksiyonu = {
+  type: "FeatureCollection",
+  features: [
+    [27.308, 38.617, 154],
+    [27.322, 38.629, 154],
+    [27.338, 38.6125, 34.5],
+    [27.347, 38.626, 154],
+    [27.358, 38.618, 34.5],
+    [27.366, 38.6295, 154],
+    [27.3315, 38.6205, 380],
+  ].map(([lon, lat, kv], i) => ({
+    type: "Feature" as const,
+    id: 900 + i,
+    geometry: { type: "Point" as const, coordinates: [lon, lat] as [number, number] },
+    properties: {
+      id: 900 + i,
+      ad: `Sahte TM ${i + 1}`,
+      isletmeci: "TEİAŞ",
+      gerilim_kv: kv,
+      kalan_kapasite_mw: i % 3 === 0 ? 12 + i : null,
+      kaynak: "sahte",
+    },
+  })),
+};
+
+/** Uydu kontrolü taklidi: gerçekte Gemini çatının uydu görüntüsüne bakar. */
+export function sahteUydu(id: number): UyduSonucu {
+  const panel = id % 13 === 0 ? "var" : id % 5 === 0 ? "belirsiz" : "yok";
+  return {
+    bina_id: id,
+    panel,
+    kaplama_orani: panel === "var" ? 0.35 : 0,
+    guven: panel === "belirsiz" ? 0.45 : 0.85,
   };
 }
 
