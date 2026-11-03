@@ -4,7 +4,7 @@
 // veri her zaman bizim API'mizden gelir, Firestore'a tarayıcıdan bağlanılmaz.
 
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
+import { connectAuthEmulator, getAuth, type Auth } from "firebase/auth";
 
 const ayarlar = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,6 +17,10 @@ const ayarlar = {
 export const firebaseHazir = Boolean(ayarlar.apiKey && ayarlar.projectId && ayarlar.appId);
 
 let uygulama: FirebaseApp | null = null;
+let emulatorBagli = false;
+
+/** Yerel denemede Firebase Auth emülatörü (ör. http://127.0.0.1:9099); yayında boş kalır. */
+const AUTH_EMULATORU = process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR;
 
 function firebaseUygulamasi(): FirebaseApp | null {
   if (!firebaseHazir || typeof window === "undefined") return null;
@@ -28,6 +32,10 @@ export function firebaseAuth(): Auth | null {
   const app = firebaseUygulamasi();
   if (!app) return null;
   const auth = getAuth(app);
+  if (AUTH_EMULATORU && !emulatorBagli) {
+    connectAuthEmulator(auth, AUTH_EMULATORU, { disableWarnings: true });
+    emulatorBagli = true;
+  }
   // Doğrulama ve şifre sıfırlama e-postaları Türkçe gitsin.
   auth.languageCode = "tr";
   return auth;

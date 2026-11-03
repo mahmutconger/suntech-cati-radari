@@ -11,6 +11,7 @@ import { useMasaustu } from "@/hooks/useMasaustu";
 import { tanitimiGorulduSay } from "@/lib/tanitim";
 import { girisAdresi } from "@/lib/yonlendirme";
 import { SideRays } from "./SideRays";
+import { VizyonMisyon } from "./VizyonMisyon";
 import { YatayOzellikSeridi } from "./YatayOzellikSeridi";
 
 /**
@@ -48,6 +49,7 @@ export function TanitimEkrani({ sonra }: { sonra: string }) {
 
   const menu = [
     { etiket: "Özellikler", adres: "#ozellikler" },
+    { etiket: "Vizyon", adres: "#vizyon" },
     { etiket: "Hesap yöntemi", adres: "/varsayimlar" },
     { etiket: "Hesap oluştur", adres: kayit },
   ];
@@ -220,6 +222,9 @@ export function TanitimEkrani({ sonra }: { sonra: string }) {
         </div>
         <YatayOzellikSeridi />
       </div>
+
+      {/* Vizyon ve misyon: özelliklerden sonra, kapanış çağrısından önce */}
+      <VizyonMisyon />
 
       {/* Kapanış çağrısı */}
       <section className="relative overflow-hidden bg-murekkep px-4 py-24 text-center text-zemin">

@@ -3,10 +3,10 @@
 // Giriş ekranının sol sütunu: Giriş ⇄ Kayıt geçişi ve şifre sıfırlama. Yalnızca e-posta ve şifre (Firebase Auth).
 // Açık tema: zemin, limon, şeftali, mercan (globals.css).
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { Eye, EyeOff, Mail } from "lucide-react";
+import { GeriDugmesi } from "@/components/ortak/GeriDugmesi";
 import { EN_KISA_SIFRE, girisYap, kayitOl, oturumHatasi, SAHTE_OTURUM, sifreSifirlamaGonder } from "@/lib/oturum";
 import { guvenliYol } from "@/lib/yonlendirme";
 import { useOturum } from "@/store/oturum";
@@ -44,7 +44,8 @@ function CamKutu({ children }: { children: ReactNode }) {
   );
 }
 
-const GIRDI = "w-full rounded-2xl bg-transparent p-4 text-sm text-murekkep placeholder:text-murekkep/35 focus:outline-none";
+const GIRDI =
+  "w-full rounded-2xl bg-transparent p-4 text-sm text-murekkep placeholder:text-murekkep/35 focus:outline-none";
 const ANA_DUGME =
   "w-full rounded-2xl bg-limon py-4 font-semibold text-murekkep transition-colors hover:bg-limon/80 disabled:opacity-50";
 
@@ -107,7 +108,8 @@ function Uyari({ tur, children }: { tur: "hata" | "basari"; children: ReactNode 
   );
 }
 
-const BAG = "font-semibold text-murekkep underline decoration-seftali decoration-2 underline-offset-4 transition-colors hover:decoration-mercan";
+const BAG =
+  "font-semibold text-murekkep underline decoration-seftali decoration-2 underline-offset-4 transition-colors hover:decoration-mercan";
 
 function BagMetni({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
@@ -217,16 +219,20 @@ export function GirisFormu() {
     // key={mod}: mod değişince giriş animasyonu baştan oynar.
     <div key={mod} className="w-full max-w-md">
       <div className="flex flex-col gap-6">
-        <Link
-          href={`/tanitim?${new URLSearchParams({ sonra })}`}
-          className="giris-oge w-fit text-sm text-murekkep/50 transition-colors hover:text-murekkep"
-          style={sira(0)}
-        >
-          ← Tanıtıma dön
-        </Link>
+        {/* Uygulamanın içindeki iOS 26 tarzı cam geri düğmesi; şifre sıfırlamada girişe, diğerlerinde tanıtıma döner */}
+        <div className="giris-oge" style={sira(0)}>
+          {mod === "sifirla" ? (
+            <GeriDugmesi etiket="Girişe dön" onClick={() => modaGec("giris")} />
+          ) : (
+            <GeriDugmesi etiket="Tanıtıma dön" href={`/tanitim?${new URLSearchParams({ sonra })}`} />
+          )}
+        </div>
 
         <div className="space-y-3">
-          <h1 className="giris-oge text-4xl font-light leading-tight tracking-tighter text-murekkep md:text-5xl" style={sira(1)}>
+          <h1
+            className="giris-oge text-4xl font-light leading-tight tracking-tighter text-murekkep md:text-5xl"
+            style={sira(1)}
+          >
             {metin.baslik}
           </h1>
           <p className="giris-oge text-murekkep/60" style={sira(2)}>
