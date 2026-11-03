@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/osblar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Osb Listele
+         * @description Yüklü OSB'ler: ad, merkez, sınır kutusu, sınır çokgeni ([lon, lat] çiftleri), bina sayısı.
+         */
+        get: operations["osb_listele_api_v1_osblar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/binalar": {
         parameters: {
             query?: never;
@@ -33,7 +53,7 @@ export interface paths {
         };
         /**
          * Binalar Listele
-         * @description OSB'deki bütün binalar, GeoJSON FeatureCollection (bbox filtresi istemcide).
+         * @description Seçili OSB'deki bütün binalar, GeoJSON FeatureCollection (bbox filtresi istemcide).
          */
         get: operations["binalar_listele_api_v1_binalar_get"];
         put?: never;
@@ -53,7 +73,7 @@ export interface paths {
         };
         /**
          * Binalar Ara
-         * @description Ada ya da OSM kimliğine göre arama, en çok 20 sonuç.
+         * @description Seçili OSB'de ada ya da OSM kimliğine göre arama, en çok 20 sonuç.
          */
         get: operations["binalar_ara_api_v1_binalar_ara_get"];
         put?: never;
@@ -73,7 +93,7 @@ export interface paths {
         };
         /**
          * Binalar Yakin
-         * @description Noktaya r km içindeki binalar, yakından uzağa, en çok 50 sonuç.
+         * @description Noktaya r km içindeki binalar (bütün OSB'ler), yakından uzağa, en çok 50 sonuç.
          */
         get: operations["binalar_yakin_api_v1_binalar_yakin_get"];
         put?: never;
@@ -129,7 +149,7 @@ export interface paths {
         put?: never;
         /**
          * Hesap Toplu
-         * @description OSB'deki bütün çatılar için yıllık güneş enerjisi hesabını ve OSB özetini döner.
+         * @description Seçilen OSB'deki bütün çatılar için yıllık güneş enerjisi hesabını, 25Y finansı, skoru ve OSB özetini döner.
          */
         post: operations["hesap_toplu_api_v1_hesap_toplu_post"];
         delete?: never;
@@ -149,9 +169,29 @@ export interface paths {
         put?: never;
         /**
          * Hesap Bina
-         * @description Tek bir bina için (varsa yıllık tüketim sınırı dahil) yıllık yatırım analizini döner.
+         * @description Tek bir bina için yıllık yatırım analizini, 25 yıllık finans metriklerini ve uygunluk skorunu döner.
          */
         post: operations["hesap_bina_api_v1_hesap_bina__bina_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hesap/finans/{bina_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hesap Finans
+         * @description Tek bir bina için 25 yılın her yılına ait üretim, tasarruf, bakım, net ve kümülatif nakit akışını döner.
+         */
+        post: operations["hesap_finans_api_v1_hesap_finans__bina_id__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -187,7 +227,7 @@ export interface paths {
         };
         /**
          * Hesap Sirala
-         * @description OSB binalarını seçilen ölçüte göre (varsayılan: yıllık tasarruf, ilk 20) sıralı döner.
+         * @description Seçilen OSB binalarını belirtilen ölçüte göre (tasarruf_tl, uygunluk_skoru, nbd_tl vb.) sıralı döner.
          */
         get: operations["hesap_sirala_api_v1_hesap_sirala_get"];
         put?: never;
@@ -283,13 +323,37 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Uydu Onbellek
+         * @description Daha önce yapılmış uydu kontrolü; Gemini'ye gitmez, yapılmadıysa 404 sonuc_yok.
+         */
+        get: operations["uydu_onbellek_api_v1_uydu__bina_id__get"];
         put?: never;
         /**
          * Uydu
          * @description Çatının uydu görüntüsünde güneş paneli arar; sonuç saklanır, aynı çatı tekrar sorulmaz.
          */
         post: operations["uydu_api_v1_uydu__bina_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uydu/{bina_id}/goruntu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Uydu Goruntu
+         * @description Çatının sarı sınırla işaretli uydu görüntüsü (JPEG, Esri World Imagery); PDF rapor için.
+         */
+        get: operations["uydu_goruntu_api_v1_uydu__bina_id__goruntu_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -319,7 +383,7 @@ export interface components {
     schemas: {
         /**
          * BinaHesapIstegi
-         * @description POST `/hesap/bina/{id}` istek gövdesi.
+         * @description POST `/hesap/bina/{id}` ve `/hesap/finans/{id}` istek gövdesi.
          */
         BinaHesapIstegi: {
             varsayimlar?: components["schemas"]["VarsayimlarDto"];
@@ -336,7 +400,7 @@ export interface components {
         };
         /**
          * HesapSonucuDto
-         * @description Tek bina yıllık hesap sonucu DTO'su (PROJE.md Bölüm 9).
+         * @description Tek bina yıllık hesap, 25Y finans ve uygunluk skoru DTO'su (PROJE.md §9 ve §22.1).
          */
         HesapSonucuDto: {
             /** Bina Id */
@@ -353,6 +417,31 @@ export interface components {
             geri_odeme_yil: number;
             /** Co2 Ton */
             co2_ton: number;
+            /**
+             * Nbd Tl
+             * @default 0
+             */
+            nbd_tl: number;
+            /**
+             * Ic Verim Orani
+             * @default 0
+             */
+            ic_verim_orani: number;
+            /**
+             * Net Kazanc 25Y Tl
+             * @default 0
+             */
+            net_kazanc_25y_tl: number;
+            /**
+             * Lcoe Tl Kwh
+             * @default 0
+             */
+            lcoe_tl_kwh: number;
+            /**
+             * Uygunluk Skoru
+             * @default 0
+             */
+            uygunluk_skoru: number;
         };
         /** Kayit */
         Kayit: {
@@ -453,7 +542,7 @@ export interface components {
         };
         /**
          * OsbOzetiDto
-         * @description OSB toplam özet DTO'su (PROJE.md Bölüm 9).
+         * @description OSB toplam özet DTO'su (PROJE.md §9 ve §22.1).
          */
         OsbOzetiDto: {
             /** Bina Sayisi */
@@ -468,6 +557,16 @@ export interface components {
             toplam_yatirim_tl: number;
             /** Toplam Co2 Ton */
             toplam_co2_ton: number;
+            /**
+             * Toplam Nbd Tl
+             * @default 0
+             */
+            toplam_nbd_tl: number;
+            /**
+             * Ortalama Skor
+             * @default 0
+             */
+            ortalama_skor: number;
         };
         /**
          * PilGirdisiDto
@@ -644,6 +743,8 @@ export interface components {
             /** Bina Id */
             bina_id?: number | null;
             varsayimlar?: components["schemas"]["VarsayimlarDto"] | null;
+            /** Osb */
+            osb?: string | null;
         };
         /** SohbetYaniti */
         SohbetYaniti: {
@@ -678,10 +779,16 @@ export interface components {
         };
         /**
          * TopluHesapIstegi
-         * @description POST `/hesap/toplu` istek gövdesi.
+         * @description POST `/hesap/toplu` istek gövdesi (PROJE.md §22.1: `osb` alanı dahil).
          */
         TopluHesapIstegi: {
             varsayimlar?: components["schemas"]["VarsayimlarDto"];
+            /**
+             * Osb
+             * @description Hesaplanacak OSB kimliği (varsayılan 'manisa')
+             * @default manisa
+             */
+            osb: string;
         };
         /**
          * TopluHesapYaniti
@@ -757,7 +864,7 @@ export interface components {
         };
         /**
          * VarsayimlarDto
-         * @description Kaydırıcılarla değiştirilebilen hesap varsayımları DTO'su.
+         * @description Kaydırıcılarla değiştirilebilen hesap varsayımları DTO'su (PROJE.md §16 ve §22.1).
          */
         VarsayimlarDto: {
             /**
@@ -802,6 +909,36 @@ export interface components {
              * @default 0.6242
              */
             emisyon_faktoru: number;
+            /**
+             * Omur Yil
+             * @description Sistem ekonomik ömrü (yıl, varsayılan 25)
+             * @default 25
+             */
+            omur_yil: number;
+            /**
+             * Degradasyon
+             * @description Yıllık panel verim kaybı / degradasyon oranı (varsayılan 0,005 = %0,5)
+             * @default 0.005
+             */
+            degradasyon: number;
+            /**
+             * Bakim Orani
+             * @description Yatırımın yüzdesi olarak yıllık işletme-bakım gideri (varsayılan 0,01 = %1)
+             * @default 0.01
+             */
+            bakim_orani: number;
+            /**
+             * Iskonto Orani
+             * @description Reel iskonto oranı (varsayılan 0,08 = %8)
+             * @default 0.08
+             */
+            iskonto_orani: number;
+            /**
+             * Tarife Artisi
+             * @description Yıllık reel elektrik tarifesi artışı (varsayılan 0,0 = %0)
+             * @default 0
+             */
+            tarife_artisi: number;
         };
         /**
          * VarsayimlarYaniti
@@ -811,6 +948,24 @@ export interface components {
             varsayimlar: components["schemas"]["VarsayimlarDto"];
             /** Kaynaklar */
             kaynaklar: components["schemas"]["VarsayimKaynagiDto"][];
+        };
+        /**
+         * YillikNakitAkisiDto
+         * @description POST `/hesap/finans/{bina_id}` yanıtındaki tek bir yılın nakit akışı satırı (PROJE.md §22.1).
+         */
+        YillikNakitAkisiDto: {
+            /** Yil */
+            yil: number;
+            /** Uretim Mwh */
+            uretim_mwh: number;
+            /** Tasarruf Tl */
+            tasarruf_tl: number;
+            /** Bakim Tl */
+            bakim_tl: number;
+            /** Net Akis Tl */
+            net_akis_tl: number;
+            /** Kumulatif Tl */
+            kumulatif_tl: number;
         };
     };
     responses: never;
@@ -843,9 +998,34 @@ export interface operations {
             };
         };
     };
-    binalar_listele_api_v1_binalar_get: {
+    osb_listele_api_v1_osblar_get: {
         parameters: {
             query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    binalar_listele_api_v1_binalar_get: {
+        parameters: {
+            query?: {
+                /** @description OSB kimliği, /osblar'dan */
+                osb?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -863,12 +1043,23 @@ export interface operations {
                     };
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     binalar_ara_api_v1_binalar_ara_get: {
         parameters: {
             query: {
                 q: string;
+                /** @description OSB kimliği, /osblar'dan */
+                osb?: string;
             };
             header?: never;
             path?: never;
@@ -969,7 +1160,10 @@ export interface operations {
     };
     trafo_merkezleri_api_v1_trafo_merkezleri_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description OSB kimliği, /osblar'dan */
+                osb?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -985,6 +1179,15 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1057,6 +1260,41 @@ export interface operations {
             };
         };
     };
+    hesap_finans_api_v1_hesap_finans__bina_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bina_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BinaHesapIstegi"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YillikNakitAkisiDto"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     hesap_simulasyon_api_v1_hesap_simulasyon__bina_id__post: {
         parameters: {
             query?: never;
@@ -1095,8 +1333,9 @@ export interface operations {
     hesap_sirala_api_v1_hesap_sirala_get: {
         parameters: {
             query?: {
-                olcut?: "tasarruf_tl" | "kwp" | "uretim_mwh" | "co2_ton" | "geri_odeme_yil" | "yatirim_tl";
+                olcut?: "tasarruf_tl" | "kwp" | "uretim_mwh" | "co2_ton" | "geri_odeme_yil" | "yatirim_tl" | "uygunluk_skoru" | "nbd_tl";
                 adet?: number;
+                osb?: string;
             };
             header?: never;
             path?: never;
@@ -1259,6 +1498,37 @@ export interface operations {
             };
         };
     };
+    uydu_onbellek_api_v1_uydu__bina_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bina_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UyduSonucu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     uydu_api_v1_uydu__bina_id__post: {
         parameters: {
             query?: never;
@@ -1277,6 +1547,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UyduSonucu"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    uydu_goruntu_api_v1_uydu__bina_id__goruntu_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bina_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
                 };
             };
             /** @description Validation Error */

@@ -111,6 +111,7 @@ export const SAHTE_OSBLAR: Osb[] = OSB_TANIMLARI.map((t) => {
     merkez: { lat: (k.guney + k.kuzey) / 2, lon: (k.bati + k.dogu) / 2 },
     sinir_kutusu: k,
     sinir: t.sinir.map(([lon, lat]) => ({ lon, lat })),
+    sinir_geojson: { type: "MultiPolygon", coordinates: [[[...t.sinir, t.sinir[0]]]] },
     bina_sayisi: t.binaAdedi,
   };
 });
@@ -196,7 +197,7 @@ const SAHTE_GELISMIS = {
 
 /** GET /varsayimlar taklidi: §22'nin yeni varsayımlarıyla birlikte. */
 export const SAHTE_VARSAYIMLAR_YANITI: VarsayimlarYaniti = {
-  varsayimlar: { ...VARSAYILAN_VARSAYIMLAR, ...SAHTE_GELISMIS },
+  varsayimlar: VARSAYILAN_VARSAYIMLAR,
   kaynaklar: [
     ["omur_yil", "Sistem ömrü", "25 yıl", 25, "yıl", "15-30", 15, 30],
     ["degradasyon", "Yıllık verim kaybı", "%0,5", 0.005, "oran", "%0-1", 0, 0.01],
@@ -316,7 +317,7 @@ function sahteBinaHesabi(id: number, alanM2: number, v: Varsayimlar, tuketim: Tu
     geri_odeme_yil: geriOdeme,
     co2_ton: (uretimKwh / 1000) * v.emisyon_faktoru,
     nbd_tl: nbd(g.iskonto, yatirim, yillar),
-    ic_verim_orani: icVerim(yatirim, yillar),
+    ic_verim_orani: icVerim(yatirim, yillar) ?? 0,
     net_kazanc_25y_tl: yillar.at(-1)?.kumulatif_tl ?? 0,
     lcoe_tl_kwh: (yatirim + iskontoluBakim) / iskontoluUretim,
     uygunluk_skoru: sahteSkor(id, kwp, geriOdeme),
