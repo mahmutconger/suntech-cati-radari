@@ -1,11 +1,11 @@
 "use client";
 
-// Ana sayfa düzeni: tam ekran harita; üstte iki satırlık cam başlık (geri, logo, katman, trafo, profil;
+// Ana sayfa düzeni: tam ekran harita; üstte iki satırlık cam başlık (geri, logo, katman, trafo, QR, profil;
 // altında OSB ve arama). Masaüstünde sağda yan panel, telefonda alt çekmece.
 
 import { useRouter } from "next/navigation";
 import { AramaCubugu } from "@/components/arama/AramaCubugu";
-import { KatmanSecici, Lejant, TrafoDugmesi } from "@/components/harita/HaritaKontrolleri";
+import { KatmanSecici, Lejant, QrDugmesi, TrafoDugmesi } from "@/components/harita/HaritaKontrolleri";
 import { HaritaYukleyici } from "@/components/harita/HaritaYukleyici";
 import { OsbSecici } from "@/components/harita/OsbSecici";
 import { VeriHatasi } from "@/components/harita/VeriHatasi";
@@ -53,6 +53,7 @@ export function AnaEkran() {
           <div className="pointer-events-auto order-2 ml-auto flex shrink-0 items-center gap-2 xl:order-3 xl:ml-0">
             <KatmanSecici />
             <TrafoDugmesi />
+            <QrDugmesi />
             <OturumMenusu />
           </div>
         </div>

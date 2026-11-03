@@ -3,7 +3,8 @@
 // Harita üstündeki kontroller: katman seçici, trafo düğmesi ve lejant. Açık tema, cam yüzey.
 // Başlıktaki bütün alanlar 48 px yüksekliğinde; geniş ekranda (xl, 1280 px ve üstü) tek satıra sığar.
 
-import { Map as HaritaIkonu, Satellite, UtilityPole, type LucideIcon } from "lucide-react";
+import { Map as HaritaIkonu, QrCode, Satellite, UtilityPole, type LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { KATMANLAR, type KatmanTuru } from "@/lib/sabitler";
 import { useSkorVar } from "@/hooks/veri";
 import { RENK_KADEMELERI, SKOR_KADEMELERI } from "@/lib/renk";
@@ -128,5 +129,20 @@ export function TrafoDugmesi() {
       <UtilityPole className="h-5 w-5" aria-hidden />
       <span className={BASLIK_ETIKETI}>Trafo</span>
     </button>
+  );
+}
+
+/** Sunumdaki QR sayfası (/qr): jüri siteyi telefonundan açar. Trafo düğmesiyle aynı cam görünüm. */
+export function QrDugmesi() {
+  return (
+    <Link
+      href="/qr"
+      title="Siteyi telefonda açmak için QR kod"
+      aria-label="QR kod"
+      className={`cam flex items-center gap-2 rounded-full px-3.5 text-sm font-semibold text-murekkep/80 transition hover:text-murekkep ${BASLIK_YUKSEKLIGI}`}
+    >
+      <QrCode className="h-5 w-5" aria-hidden />
+      <span className={BASLIK_ETIKETI}>QR</span>
+    </Link>
   );
 }
