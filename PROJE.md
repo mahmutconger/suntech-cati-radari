@@ -744,7 +744,7 @@ Dört özellik ekleniyor: **diğer Manisa OSB'leri**, **25 yıllık finans**, **
 
 ### 22.2 Nazım: veri, OSB'ler, API, asistan, uydu
 
-**Durum (3 Kasım gece):** bu bölümün hepsi bitti. Mehmet için not: `api/v1/hesapService.py`'deki depoya geçici olarak "yalnız Manisa" süzgeci eklendi (canlıda toplamlar 733 binaya çıkmıştı). `osb` parametresini eklerken o satırı kaldır. Asistanın sıralama ölçütleri `SiralamaOlcutu`'ndan otomatik alınıyor; yeni ölçüt eklediğinde asistan da kullanır.
+**Durum (3 Kasım gece):** bu bölümün hepsi bitti. Asistanın sıralama ölçütleri `SiralamaOlcutu`'ndan otomatik alınıyor; yeni ölçüt eklenince asistan da kullanır.
 
 | Dosya | İş |
 |---|---|

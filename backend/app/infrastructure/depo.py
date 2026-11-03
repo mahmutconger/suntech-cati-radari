@@ -39,13 +39,10 @@ def trafolar(osb: str | None = None) -> list[dict]:
 
 
 class HesapDeposu:
-    """Mehmet'in hesap use case'lerinin beklediği BinaDeposu; aynı önbelleği kullanır."""
-
-    def __init__(self, osb: str | None = None) -> None:
-        self._osb = osb
+    """Mehmet'in hesap use case'lerinin beklediği BinaDeposu; aynı önbelleği kullanır. OSB süzgeci use case'te."""
 
     def hepsi(self) -> list[dict]:
-        return binalar(self._osb)
+        return binalar()
 
     def getir(self, bina_id: int) -> dict | None:
         return next((b for b in binalar() if b["osm_id"] == bina_id), None)

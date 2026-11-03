@@ -93,11 +93,11 @@ def _araclar(varsayimlar: VarsayimlarDto, acik_osb: str) -> dict[str, Callable[.
     depo = HesapDeposu()
     v = varsayimlar.to_domain()
 
-    def osb_depo(osb: str | None) -> HesapDeposu:
+    def osb_sec(osb: str | None) -> str:
         osb = osb or acik_osb
         if not bina.osb_var_mi(osb):
             raise ValueError(f"'{osb}' diye bir OSB yok; osb_listesi'ne bak")
-        return HesapDeposu(osb)
+        return osb
     # Oranlar yüzde olarak verilir; model 0.8'i "%8" diye okuyordu
     ham = varsayimlar.model_dump()
     v_disari = {
@@ -127,8 +127,9 @@ def _araclar(varsayimlar: VarsayimlarDto, acik_osb: str) -> dict[str, Callable[.
         return d | {"hesap": HesapSonucuDto.from_domain(hesap).model_dump(), "varsayimlar": v_disari}
 
     def osb_ozeti(en_cok_geri_odeme_yil: float | None = None, osb: str | None = None) -> dict:
-        cikti = _calistir(TopluHesapSorgusu(osb_depo(osb)).calistir(v))
-        sonuc = {"osb": osb or acik_osb, "ozet": OsbOzetiDto.from_domain(cikti.ozet).model_dump(), "varsayimlar": v_disari}
+        osb = osb_sec(osb)
+        cikti = _calistir(TopluHesapSorgusu(depo).calistir(v, osb=osb))
+        sonuc = {"osb": osb, "ozet": OsbOzetiDto.from_domain(cikti.ozet).model_dump(), "varsayimlar": v_disari}
         if en_cok_geri_odeme_yil is not None:
             sinir = float(en_cok_geri_odeme_yil)
             uyan = [s for s in cikti.sonuclar if 0 < s.geri_odeme_yil <= sinir]
@@ -144,9 +145,10 @@ def _araclar(varsayimlar: VarsayimlarDto, acik_osb: str) -> dict[str, Callable[.
     def sirala(olcut: str, adet: int = 5, osb: str | None = None) -> dict:
         if olcut not in OLCUTLER:
             return {"hata": f"olcut şunlardan biri olmalı: {', '.join(OLCUTLER)}"}
-        liste = _calistir(SiralamaSorgusu(osb_depo(osb)).calistir(olcut, max(1, min(int(adet), 20)), v))
+        osb = osb_sec(osb)
+        liste = _calistir(SiralamaSorgusu(depo).calistir(olcut, max(1, min(int(adet), 20)), v, osb=osb))
         return {
-            "osb": osb or acik_osb,
+            "osb": osb,
             "olcut": olcut,
             "sonuclar": [HesapSonucuDto.from_domain(s).model_dump() | {"ad": adlar.get(s.bina_id, "")} for s in liste],
         }
