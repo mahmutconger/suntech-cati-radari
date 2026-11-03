@@ -34,6 +34,13 @@ def test_uygunluk_skoru_aralik_ve_agirliklar() -> None:
     assert skor_zayif < 35.0
 
 
+def test_mevcut_ges_varsa_skor_sifir() -> None:
+    """Çatıda zaten panel varsa, diğer bileşenler ne kadar iyi olursa olsun skor 0 olmalı."""
+    ortak = dict(geri_odeme_yil=3.2, verim_kwh_kwp=1345.0, kwp=1500.0, trafo_mesafe_km=0.4)
+    assert uygunluk_skoru_hesapla(**ortak, mevcut_ges=False) > 85.0
+    assert uygunluk_skoru_hesapla(**ortak, mevcut_ges=True) == 0.0
+
+
 def test_trafo_mesafesi_yoksa_notr_bilesen() -> None:
     """PROJE.md §22.3 ve §22.5: `trafo_mesafe_km` yoksa (None) o bileşen nötr (5 puan) kalmalıdır."""
     skor_yakin = uygunluk_skoru_hesapla(

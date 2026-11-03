@@ -23,9 +23,11 @@ def uygunluk_skoru_hesapla(
     - Güneş verimi (%20)     : 1.250 - 1.350 kWh/kWp aralığında doğrusal ölçek
     - Kurulu güç kWp (%20)   : logaritmik ölçek (70 kWp -> ~0,40; 250 kWp -> ~0,65; >= 1.500 kWp -> 1,0)
     - Trafo mesafesi (%10)   : 0 km -> 1,0; >= 5 km -> 0,0; `trafo_mesafe_km is None` ise nötr (0,5)
-    - Mevcut GES yok (%10)   : Çatıda henüz GES yoksa 1,0; mevcut GES varsa 0,0
+    - Mevcut GES yok (%10)   : Çatıda henüz GES yoksa 1,0
+
+    Çatıda zaten GES varsa (OSM ya da uydu tespiti) skor 0'dır: ilk gidilecek listesinden düşer.
     """
-    if kwp <= 0 or geri_odeme_yil <= 0:
+    if mevcut_ges or kwp <= 0 or geri_odeme_yil <= 0:
         return 0.0
 
     # 1. Geri ödeme bileşeni (%40)
