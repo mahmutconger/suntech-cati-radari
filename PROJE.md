@@ -294,7 +294,8 @@ osb_sinirlari/{id}
 2. **Süzme ve alan, Python'da.** Ham binalar Shapely ile işlenir: alan hesabı (`area` on geography), OSB sınırı kontrolü (`contains`), merkez noktası (`representative_point`). 1.000 m² üstü binalar Firestore'a yazılır.
 3. **Güneş verisi.** PVGIS'ten OSB'yi 0,01 derecelik ızgarayla kaplayan 30-40 noktada yıllık üretim (yatay panel, %14 kayıp) ve bir yıllık saatlik üretim çekilir. Her bina en yakın ızgara noktasının değerini alır (Haversine mesafe, Python'da). Saatlik veri `seriescalc` ucundan gelir: SARAH3, 2023 yılı, 8.760 saat, 1 kWp için watt cinsinden `P`. Zaman damgaları UTC'dir. PVGIS IP başına saniyede 30 isteğe izin verir.
 4. **Trafo ve mevcut paneller.** OSM'den trafo merkezleri (`power=substation`) ve güneş paneli etiketli alanlar (`generator:source=solar`) çekilir; panelli çatılar `mevcut_ges` ile işaretlenir.
-5. **Kontrol.** Bina sayısı ve toplam alan yazdırılır; bilinen 3 binanın alanı uydu ölçümüyle karşılaştırılır.
+5. **Firma adları.** `scripts/ad_esle.py --osb <id>`: OSM'deki adlı işletme noktalarını ve alanlarını adsız çatılara yazar (kaynak: `osm_nokta`, `osm_yakin`, `osm_alan`). `--kuru` yazmadan listeler. veri_yukle'den sonra çalıştırılır.
+6. **Kontrol.** Bina sayısı ve toplam alan yazdırılır; bilinen 3 binanın alanı uydu ölçümüyle karşılaştırılır.
 
 Organizatör izin verirse ham veri 2 Kasım akşamı indirilir; vermezse etkinlik başında çekilir, yaklaşık 10 dakika sürer.
 
@@ -729,7 +730,7 @@ Dört özellik ekleniyor: **diğer Manisa OSB'leri**, **25 yıllık finans**, **
 | Uç | Değişiklik |
 |---|---|
 | `GET /osblar` | yeni; OSB listesi |
-| `GET /binalar`, `/binalar/ara`, `/trafo-merkezleri`, `GET /hesap/sirala` | `?osb=` parametresi, verilmezse `manisa`; bilinmeyen OSB 404 `osb_yok`. Bina özetlerinde `osb` alanı var. |
+| `GET /binalar`, `/binalar/ara`, `/trafo-merkezleri`, `GET /hesap/sirala` | `?osb=` parametresi, verilmezse `manisa`; bilinmeyen OSB 404 `osb_yok`. Bina özetlerinde `osb` ve `trafo_mesafe_km` alanı var. Bütün uçlarda `response_model` (Pydantic şema) tanımlı; frontend tipleri `npm run tipler` ile üretilir. |
 | `POST /sohbet` | gövdeye `osb` (haritada açık olan OSB); asistanın `osb_listesi` aracı var, `osb_ozeti` ve `sirala` OSB alır |
 | `POST /hesap/toplu` | gövdeye `osb` alanı |
 | `POST /hesap/finans/{bina_id}` | yeni; gövde `{varsayimlar, yillik_tuketim_kwh}`, yanıt 25 yılın her yılı için `{yil, uretim_mwh, tasarruf_tl, bakim_tl, net_akis_tl, kumulatif_tl}` |
@@ -790,3 +791,12 @@ Dört özellik ekleniyor: **diğer Manisa OSB'leri**, **25 yıllık finans**, **
 5. **Birleştirme 2** → deploy → prova. **07:30'da kod dondurulur.**
 
 Tek bağımlılık: Mehmet'in skoru `trafo_mesafe_km` alanını kullanır; alan yoksa o bileşen nötr kalır, Mehmet beklemez.
+
+### 22.6 Sonradan eklenenler (4 Kasım)
+
+- **Yanıt şemaları:** `/binalar`, `/osblar`, `/trafo-merkezleri` uçlarına Pydantic `response_model` eklendi (`backend/app/schemas/bina.py`). Bina özetine `trafo_mesafe_km` geldi. Frontend tipleri artık `npm run tipler` ile şemadan üretiliyor, `gecici.ts`'deki elle tanımlar kaldırıldı (alias).
+- **Asistan cevap önbelleği:** `sohbet.py`'de aynı soru+bağlam Gemini'ye tekrar gitmez (süreç içi dict, max 256 giriş). Uydu tespiti veri değiştirince (`_mevcut_ges_isaretle`) önbellek temizlenir.
+- **Firma adları:** `scripts/ad_esle.py` OSM'deki işletme noktalarını ve alanlarını adsız çatılara yazar (120/663 adlı → +33). `--kuru` moduyla denenir.
+- **`?bina=` adres desteği:** `BinaAdresi.tsx` seçili çatıyı adreste tutar; bağlantı paylaşılınca doğru OSB + çatı açılır.
+- **Senaryo paneli:** `SenaryoPaneli.tsx` — %25/%50/Hepsi düğmeleriyle en uygun çatılardan başlayarak OSB toplamı (kurulu güç, tasarruf, CO₂, yatırım).
+- **CSV indirme:** `lib/csv.ts` — ilk 20 listeyi Türkçe Excel uyumlu CSV (BOM, `;`, ondalık virgül, formül koruması) olarak indirir.

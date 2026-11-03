@@ -13,7 +13,7 @@ import { sayi } from "@/lib/bicim";
 import { KATMANLAR, OSB_SINIR_KUTUSU as K } from "@/lib/sabitler";
 import { catiRengi } from "@/lib/renk";
 import { useHaritaDurumu } from "@/store/harita";
-import type { BinaOzelligi, Osb } from "@/types/gecici";
+import type { BinaOzelligi } from "@/types/gecici";
 
 /** Açılış görünümü: Manisa OSB çevresi. Seçili OSB yüklenince ona sığdırılır. */
 const ACILIS_SINIRI = L.latLngBounds([K.guney, K.bati], [K.kuzey, K.dogu]);
@@ -46,28 +46,11 @@ function OsbGorunumu() {
   return null;
 }
 
-/** Backend'in `sinir` alanını GeoJSON geometriye çevirir (MultiPolygon/Polygon ya da {lon, lat} listesi). */
-function sinirGeometrisi(sinir: Osb["sinir"]): GeoJSON.Polygon | GeoJSON.MultiPolygon | null {
-  if (Array.isArray(sinir)) {
-    if (sinir.length < 3) return null;
-    const halka = sinir.map((n) => [n.lon, n.lat]);
-    const [ilk, son] = [halka[0], halka[halka.length - 1]];
-    if (ilk[0] !== son[0] || ilk[1] !== son[1]) halka.push(ilk);
-    return { type: "Polygon", coordinates: [halka] };
-  }
-  if (sinir && (sinir.type === "Polygon" || sinir.type === "MultiPolygon") && Array.isArray(sinir.coordinates)) {
-    return sinir as GeoJSON.Polygon | GeoJSON.MultiPolygon;
-  }
-  return null;
-}
-
-/** Seçili OSB'nin sınırı (GET /osblar'daki `sinir`). */
+/** Seçili OSB'nin sınırı (sinir_geojson: MultiPolygon). */
 function OsbSiniri() {
   const osb = useSeciliOsb();
-  // Önce bütün parçalar (sinir_geojson), yoksa sinir.
-  const geometri = osb ? ((osb.sinir_geojson && sinirGeometrisi(osb.sinir_geojson)) ?? sinirGeometrisi(osb.sinir)) : null;
-  if (!osb || !geometri) return null;
-  const ozellik: GeoJSON.Feature = { type: "Feature", properties: { ad: osb.ad }, geometry: geometri };
+  if (!osb) return null;
+  const ozellik: GeoJSON.Feature = { type: "Feature", properties: { ad: osb.ad }, geometry: osb.sinir_geojson };
   return (
     <GeoJSON
       key={osb.id}

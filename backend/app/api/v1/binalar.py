@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.application import bina
 from app.infrastructure.depo import VARSAYILAN_OSB, binalar, trafolar
+from app.schemas.bina import BinaDetay, BinaKoleksiyonu, BinaOzet, Osb, TrafoKoleksiyonu, YakinBina
 
 router = APIRouter(tags=["binalar"])
 
@@ -16,13 +17,13 @@ def _osb_dogrula(osb: str) -> str:
     return osb
 
 
-@router.get("/osblar")
+@router.get("/osblar", response_model=list[Osb])
 def osb_listele() -> list[dict]:
     """Yüklü OSB'ler: ad, merkez, sınır kutusu, sınır çokgeni ([lon, lat] çiftleri), bina sayısı."""
     return bina.osb_listesi()
 
 
-@router.get("/binalar")
+@router.get("/binalar", response_model=BinaKoleksiyonu)
 def binalar_listele(osb: str = OsbParam) -> dict:
     """Seçili OSB'deki bütün binalar, GeoJSON FeatureCollection (bbox filtresi istemcide)."""
     return {
@@ -34,13 +35,13 @@ def binalar_listele(osb: str = OsbParam) -> dict:
     }
 
 
-@router.get("/binalar/ara")
+@router.get("/binalar/ara", response_model=list[BinaOzet])
 def binalar_ara(q: str = Query(min_length=1, max_length=100), osb: str = OsbParam) -> list[dict]:
     """Seçili OSB'de ada ya da OSM kimliğine göre arama, en çok 20 sonuç."""
     return bina.ara(q, osb=_osb_dogrula(osb))
 
 
-@router.get("/binalar/yakin")
+@router.get("/binalar/yakin", response_model=list[YakinBina])
 def binalar_yakin(
     lat: float = Query(ge=-90, le=90),
     lon: float = Query(ge=-180, le=180),
@@ -50,7 +51,7 @@ def binalar_yakin(
     return bina.yakin(lat, lon, r)
 
 
-@router.get("/binalar/{bina_id}")
+@router.get("/binalar/{bina_id}", response_model=BinaDetay)
 def bina_detay(bina_id: int) -> dict:
     sonuc = bina.detay(bina_id)
     if sonuc is None:
@@ -58,7 +59,7 @@ def bina_detay(bina_id: int) -> dict:
     return sonuc
 
 
-@router.get("/trafo-merkezleri")
+@router.get("/trafo-merkezleri", response_model=TrafoKoleksiyonu)
 def trafo_merkezleri(osb: str = OsbParam) -> dict:
     return {
         "type": "FeatureCollection",

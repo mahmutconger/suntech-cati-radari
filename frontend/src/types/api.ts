@@ -381,6 +381,32 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** BinaDetay */
+        BinaDetay: {
+            /** Id */
+            id: number;
+            /** Ad */
+            ad: string;
+            /** Alan M2 */
+            alan_m2: number;
+            /** Merkez */
+            merkez: [
+                number,
+                number
+            ];
+            /** Osb */
+            osb: string;
+            /** Trafo Mesafe Km */
+            trafo_mesafe_km?: number | null;
+            /** Verim Kwh Kwp */
+            verim_kwh_kwp: number | null;
+            /** Mevcut Ges */
+            mevcut_ges: boolean;
+            /** Pvgis Id */
+            pvgis_id: string | null;
+            geometri: components["schemas"]["Cokgen"];
+            en_yakin_trafo: components["schemas"]["EnYakinTrafo"] | null;
+        };
         /**
          * BinaHesapIstegi
          * @description POST `/hesap/bina/{id}` ve `/hesap/finans/{id}` istek gövdesi.
@@ -392,6 +418,77 @@ export interface components {
              * @description Firmanın yıllık elektrik tüketimi (kWh/yıl)
              */
             yillik_tuketim_kwh?: number | null;
+        };
+        /** BinaKoleksiyonu */
+        BinaKoleksiyonu: {
+            /**
+             * Type
+             * @constant
+             */
+            type: "FeatureCollection";
+            /** Features */
+            features: components["schemas"]["BinaOzelligi"][];
+        };
+        /** BinaOzelligi */
+        BinaOzelligi: {
+            /**
+             * Type
+             * @constant
+             */
+            type: "Feature";
+            /** Id */
+            id: number;
+            geometry: components["schemas"]["Cokgen"];
+            properties: components["schemas"]["BinaOzet"];
+        };
+        /** BinaOzet */
+        BinaOzet: {
+            /** Id */
+            id: number;
+            /** Ad */
+            ad: string;
+            /** Alan M2 */
+            alan_m2: number;
+            /** Merkez */
+            merkez: [
+                number,
+                number
+            ];
+            /** Osb */
+            osb: string;
+            /** Trafo Mesafe Km */
+            trafo_mesafe_km?: number | null;
+        };
+        /** Cokgen */
+        Cokgen: {
+            /**
+             * Type
+             * @constant
+             */
+            type: "Polygon";
+            /** Coordinates */
+            coordinates: number[][][];
+        };
+        /** CokluCokgen */
+        CokluCokgen: {
+            /**
+             * Type
+             * @constant
+             */
+            type: "MultiPolygon";
+            /** Coordinates */
+            coordinates: number[][][][];
+        };
+        /** EnYakinTrafo */
+        EnYakinTrafo: {
+            /** Id */
+            id: number;
+            /** Ad */
+            ad: string;
+            /** Gerilim Kv */
+            gerilim_kv: number | null;
+            /** Mesafe Km */
+            mesafe_km: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -539,6 +636,34 @@ export interface components {
             rol: "kullanici" | "asistan";
             /** Metin */
             metin: string;
+        };
+        /** Nokta */
+        Nokta: {
+            /** Lon */
+            lon: number;
+            /** Lat */
+            lat: number;
+        };
+        /** Osb */
+        Osb: {
+            /** Id */
+            id: string;
+            /** Ad */
+            ad: string;
+            merkez: components["schemas"]["OsbMerkezi"];
+            sinir_kutusu: components["schemas"]["SinirKutusu"];
+            /** Sinir */
+            sinir: components["schemas"]["Nokta"][];
+            sinir_geojson: components["schemas"]["CokluCokgen"];
+            /** Bina Sayisi */
+            bina_sayisi: number;
+        };
+        /** OsbMerkezi */
+        OsbMerkezi: {
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
         };
         /**
          * OsbOzetiDto
@@ -736,6 +861,17 @@ export interface components {
             /** Gunluk Profil */
             gunluk_profil: components["schemas"]["SaatlikGunProfiliDto"][];
         };
+        /** SinirKutusu */
+        SinirKutusu: {
+            /** Guney */
+            guney: number;
+            /** Bati */
+            bati: number;
+            /** Kuzey */
+            kuzey: number;
+            /** Dogu */
+            dogu: number;
+        };
         /** SohbetIstegi */
         SohbetIstegi: {
             /** Mesajlar */
@@ -799,6 +935,56 @@ export interface components {
             sonuclar: components["schemas"]["HesapSonucuDto"][];
             ozet: components["schemas"]["OsbOzetiDto"];
             osb_ozeti?: components["schemas"]["OsbOzetiDto"] | null;
+        };
+        /** TrafoKoleksiyonu */
+        TrafoKoleksiyonu: {
+            /**
+             * Type
+             * @constant
+             */
+            type: "FeatureCollection";
+            /** Features */
+            features: components["schemas"]["TrafoOzelligi"][];
+        };
+        /** TrafoNoktasi */
+        TrafoNoktasi: {
+            /**
+             * Type
+             * @constant
+             */
+            type: "Point";
+            /** Coordinates */
+            coordinates: [
+                number,
+                number
+            ];
+        };
+        /** TrafoOzelligi */
+        TrafoOzelligi: {
+            /**
+             * Type
+             * @constant
+             */
+            type: "Feature";
+            /** Id */
+            id: number;
+            geometry: components["schemas"]["TrafoNoktasi"];
+            properties: components["schemas"]["TrafoOzellikleri"];
+        };
+        /** TrafoOzellikleri */
+        TrafoOzellikleri: {
+            /** Id */
+            id: number;
+            /** Ad */
+            ad: string;
+            /** Isletmeci */
+            isletmeci: string;
+            /** Gerilim Kv */
+            gerilim_kv: number | null;
+            /** Kalan Kapasite Mw */
+            kalan_kapasite_mw: number | null;
+            /** Kaynak */
+            kaynak: string;
         };
         /** Tuketim */
         Tuketim: {
@@ -949,6 +1135,26 @@ export interface components {
             /** Kaynaklar */
             kaynaklar: components["schemas"]["VarsayimKaynagiDto"][];
         };
+        /** YakinBina */
+        YakinBina: {
+            /** Id */
+            id: number;
+            /** Ad */
+            ad: string;
+            /** Alan M2 */
+            alan_m2: number;
+            /** Merkez */
+            merkez: [
+                number,
+                number
+            ];
+            /** Osb */
+            osb: string;
+            /** Trafo Mesafe Km */
+            trafo_mesafe_km?: number | null;
+            /** Mesafe Km */
+            mesafe_km: number;
+        };
         /**
          * YillikNakitAkisiDto
          * @description POST `/hesap/finans/{bina_id}` yanıtındaki tek bir yılın nakit akışı satırı (PROJE.md §22.1).
@@ -1013,9 +1219,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
+                    "application/json": components["schemas"]["Osb"][];
                 };
             };
         };
@@ -1038,9 +1242,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["BinaKoleksiyonu"];
                 };
             };
             /** @description Validation Error */
@@ -1073,9 +1275,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
+                    "application/json": components["schemas"]["BinaOzet"][];
                 };
             };
             /** @description Validation Error */
@@ -1109,9 +1309,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
+                    "application/json": components["schemas"]["YakinBina"][];
                 };
             };
             /** @description Validation Error */
@@ -1142,9 +1340,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["BinaDetay"];
                 };
             };
             /** @description Validation Error */
@@ -1176,9 +1372,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TrafoKoleksiyonu"];
                 };
             };
             /** @description Validation Error */
