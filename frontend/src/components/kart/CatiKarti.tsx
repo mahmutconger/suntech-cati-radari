@@ -142,6 +142,12 @@ export function CatiKarti({ binaId }: { binaId: number }) {
 
       <div className="grid gap-2">
         <KaydetDugmesi key={`kaydet-${binaId}`} binaId={binaId} />
+        <Link
+          href={`/rapor/${binaId}`}
+          className="block rounded-xl border border-white/15 px-4 py-2.5 text-center text-sm font-semibold text-slate-100 hover:bg-white/5"
+        >
+          📄 Ön fizibilite raporu (PDF)
+        </Link>
       </div>
 
       <p className="text-[11px] leading-relaxed text-slate-400">
