@@ -35,6 +35,8 @@ export interface BinaOzet {
   ad: string;
   alan_m2: number;
   merkez: Konum;
+  /** Binanın OSB'si (/osblar kimliği); eski kayıtlarda yoksa "manisa" sayılır. */
+  osb?: string;
 }
 
 export interface EnYakinTrafo {

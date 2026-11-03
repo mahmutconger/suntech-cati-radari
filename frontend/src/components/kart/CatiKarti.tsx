@@ -87,7 +87,7 @@ export function CatiKarti({ binaId }: { binaId: number }) {
               </span>
             )}
             {detay?.mevcut_ges && (
-              <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-sky-200">Çatıda panel kayıtlı (OSM)</span>
+              <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-sky-200">Mevcut panel var</span>
             )}
           </div>
         </div>
