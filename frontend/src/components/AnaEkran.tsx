@@ -6,6 +6,7 @@
 import { AramaCubugu } from "@/components/arama/AramaCubugu";
 import { KatmanSecici, Lejant, TrafoDugmesi } from "@/components/harita/HaritaKontrolleri";
 import { HaritaYukleyici } from "@/components/harita/HaritaYukleyici";
+import { VeriHatasi } from "@/components/harita/VeriHatasi";
 import { OturumMenusu } from "@/components/oturum/OturumMenusu";
 import { AltCekmece } from "@/components/panel/AltCekmece";
 import { PanelIcerigi } from "@/components/panel/PanelIcerigi";
@@ -38,6 +39,11 @@ export function AnaEkran() {
         <div className="pointer-events-auto order-3 w-full md:order-2 md:max-w-md">
           <AramaCubugu />
         </div>
+      </div>
+
+      {/* Veri hatası: üst çubuğun altında, ortada */}
+      <div className="pointer-events-none absolute inset-x-0 top-[124px] z-[1000] flex justify-center px-3 md:right-[400px] md:top-20">
+        <VeriHatasi />
       </div>
 
       {/* Lejant: masaüstünde sol alt; telefonda çekmecenin üstünde tek satır */}

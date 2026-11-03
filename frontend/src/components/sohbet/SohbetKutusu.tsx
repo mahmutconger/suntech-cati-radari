@@ -52,6 +52,7 @@ export function SohbetKutusu() {
   const acik = useHaritaDurumu((d) => d.sohbetAcik);
   const ayarla = useHaritaDurumu((d) => d.sohbetAyarla);
   const seciliId = useHaritaDurumu((d) => d.seciliBinaId);
+  const varsayimlar = useHaritaDurumu((d) => d.varsayimlar);
   const [mesajlar, setMesajlar] = useState<Mesaj[]>([]);
   const [metin, setMetin] = useState("");
   const sohbet = useSohbet();
@@ -66,6 +67,7 @@ export function SohbetKutusu() {
     if (!temiz || sohbet.isPending) return;
     // Hata mesajları geçmişe girmez; son 20 mesaj gider ve sonuncusu kullanıcının sorusudur.
     // Seçili bina varsa bina_id ile gönderilir, asistan bina_detayi aracıyla okur.
+    // Kaydırıcı değerleri de gider; asistanın araçları aynı varsayımlarla hesaplar.
     const mesajlarIstek = [
       ...mesajlar.filter((m) => !m.hata).map(({ rol, metin }) => ({ rol, metin: metin.slice(0, EN_COK_KARAKTER) })),
       { rol: "kullanici" as const, metin: temiz },
@@ -73,7 +75,7 @@ export function SohbetKutusu() {
     setMesajlar((m) => [...m, { rol: "kullanici", metin: temiz }]);
     setMetin("");
     sohbet.mutate(
-      { mesajlar: mesajlarIstek, bina_id: seciliId },
+      { mesajlar: mesajlarIstek, bina_id: seciliId, varsayimlar },
       {
         onSuccess: (y) =>
           setMesajlar((m) => [...m, { rol: "asistan", metin: y.cevap, araclar: y.araclar, model: y.model }]),

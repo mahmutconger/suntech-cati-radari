@@ -14,7 +14,7 @@ const PANEL_METNI: Record<UyduSonucu["panel"], { metin: string; renk: string }> 
 };
 
 function hataMetni(hata: Error): string {
-  if (hata instanceof ApiHatasi && hata.durum === 404) return "Uydu kontrolü henüz hazır değil.";
+  if (hata instanceof ApiHatasi && hata.kod === "bina_yok") return "Bina bulunamadı.";
   if (hata instanceof ApiHatasi && hata.durum === 429) return "Çok fazla istek. Bir dakika sonra tekrar deneyin.";
   return hata.message;
 }
@@ -27,9 +27,11 @@ export function UyduKontrolu({ binaId }: { binaId: number }) {
     return (
       <div className={`rounded-2xl px-3 py-2.5 ring-1 ${p.renk}`}>
         <p className="text-sm font-semibold">🛰 {p.metin}</p>
-        <p className="mt-0.5 text-[11px] opacity-80">
+        {sonuc.aciklama && <p className="mt-1 text-xs leading-snug opacity-90">{sonuc.aciklama}</p>}
+        <p className="mt-1 text-[11px] opacity-75">
           {sonuc.panel === "var" && `Çatının yaklaşık %${Math.round(sonuc.kaplama_orani * 100)}'i kaplı · `}
-          Güven %{Math.round(sonuc.guven * 100)} · Gemini uydu görüntüsü analizi, ön tarama
+          Güven %{Math.round(sonuc.guven * 100)} · {sonuc.model}
+          {sonuc.onbellekten && " · daha önce bakılmıştı"} · ön tarama
         </p>
       </div>
     );
