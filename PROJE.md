@@ -355,6 +355,9 @@ Varsayimlar  { kullanilabilir_oran, m2_kwp, tarife_tl_kwh, fazla_fiyat_tl_kwh,
 BinaOzet     { id, ad, alan_m2, merkez: [lon, lat] }   // /binalar/yakin ek olarak mesafe_km
 BinaDetay    BinaOzet + { verim_kwh_kwp, mevcut_ges, pvgis_id, geometri: GeoJSON Polygon,
                en_yakin_trafo: { id, ad, gerilim_kv, mesafe_km } }
+SohbetIstegi { mesajlar: [{ rol: "kullanici" | "asistan", metin }] (en çok 20, son 10'u kullanılır,
+               sonuncusu kullanıcının, metin ≤ 2000), bina_id?: açık kartın id'si }
+SohbetYaniti { cevap, araclar: [{ ad, girdi }], model }   // geçmişi istemci tutar; 429 hız sınırı, 503 asistan meşgul
 TrafoOzelligi GeoJSON Point, properties { id, ad, isletmeci, gerilim_kv, kalan_kapasite_mw, kaynak }
 HesapSonucu  { bina_id, kwp, uretim_mwh, tasarruf_tl, yatirim_tl,
                geri_odeme_yil, co2_ton }
@@ -372,7 +375,7 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 - **Araçlar:** `osb_ozeti`, `bina_bul`, `bina_detayi`, `sirala`. Hepsi salt okunur ve hesap use case'lerini çağırır.
 - **Sistem talimatı:** "Sayıları yalnızca araç çıktısından al, kendin hesaplama. Araçta olmayan bir şey sorulursa bilmediğini söyle. Ön fizibilite notunun sonuna şunu ekle: Bu bir ön taramadır. Çatı statiği, mevcut tesisat ve şebeke bağlantısı için yerinde keşif gerekir."
 - **Ön fizibilite notu:** bina ve konum, kullanılan varsayımlar, sonuç tablosu, dikkat edilecekler (statik, mevcut GES, trafo kapasitesi), sonraki adım (yerinde keşif ve en az iki teklif).
-- **Model:** AI Studio'nun limit sayfasında ücretsiz kotası en geniş Flash ya da Flash-Lite modeli; 2 Kasım'da seçilir.
+- **Model:** `GEMINI_MODELLER` sırasıyla gemini-3.6-flash, gemini-3.5-flash, gemini-3.5-flash-lite; 503 ya da 429 gelince sıradakine geçilir (3.7/3.8 Flash 3 Kasım'da sürekli meşguldü, 2.5 yeni kullanıcıya kapalı). Anahtar ücretli katmandan. `GEMINI_SAHTE=1` iken istek gitmez.
 
 ### 10.2 Uydu tespiti (Nazım)
 

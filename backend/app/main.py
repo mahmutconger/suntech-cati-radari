@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import CORS_ORIGINS
 from app.core.firebase import get_firestore_client
+from app.infrastructure.depo import VeritabaniHatasi
 
 import logging
 
@@ -46,6 +47,12 @@ app.add_middleware(
 async def _http_hatasi(_: Request, exc: HTTPException) -> JSONResponse:
     hata = exc.detail if isinstance(exc.detail, dict) else {"kod": "hata", "mesaj": str(exc.detail)}
     return JSONResponse({"hata": hata}, status_code=exc.status_code, headers=exc.headers)
+
+
+@app.exception_handler(VeritabaniHatasi)
+async def _veritabani_hatasi(_: Request, exc: VeritabaniHatasi) -> JSONResponse:
+    logger.error("Firestore okunamadı: %s", exc.__cause__)
+    return JSONResponse({"hata": {"kod": "veritabani", "mesaj": "Veritabanına ulaşılamadı"}}, status_code=503)
 
 
 @app.exception_handler(RequestValidationError)
