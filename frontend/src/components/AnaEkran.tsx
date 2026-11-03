@@ -6,6 +6,7 @@
 import { AramaCubugu } from "@/components/arama/AramaCubugu";
 import { KatmanSecici, Lejant, TrafoDugmesi } from "@/components/harita/HaritaKontrolleri";
 import { HaritaYukleyici } from "@/components/harita/HaritaYukleyici";
+import { OsbSecici } from "@/components/harita/OsbSecici";
 import { VeriHatasi } from "@/components/harita/VeriHatasi";
 import { OturumMenusu } from "@/components/oturum/OturumMenusu";
 import { AltCekmece } from "@/components/panel/AltCekmece";
@@ -36,8 +37,11 @@ export function AnaEkran() {
           <TrafoDugmesi />
           <OturumMenusu />
         </div>
-        <div className="pointer-events-auto order-3 w-full md:order-2 md:max-w-md">
-          <AramaCubugu />
+        <div className="pointer-events-auto order-3 flex w-full gap-2 md:order-2 md:max-w-xl">
+          <OsbSecici />
+          <div className="min-w-0 flex-1">
+            <AramaCubugu />
+          </div>
         </div>
       </div>
 
@@ -52,7 +56,7 @@ export function AnaEkran() {
           <Lejant />
         </div>
       </div>
-      <div className="pointer-events-none absolute bottom-[128px] left-3 z-[900] md:hidden">
+      <div className="pointer-events-none absolute bottom-[176px] left-3 z-[900] md:hidden">
         <Lejant kompakt />
       </div>
 

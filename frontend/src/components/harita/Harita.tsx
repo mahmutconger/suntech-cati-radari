@@ -7,32 +7,65 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useCallback, useEffect, useRef } from "react";
 import { CircleMarker, GeoJSON, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
-import { useBinalar, useHesapSozlugu, useTrafolar } from "@/hooks/veri";
-import { SAHTE_VERI } from "@/lib/api";
+import { useBinalar, useHesapSozlugu, useSeciliOsb, useTrafolar } from "@/hooks/veri";
 import { sayi } from "@/lib/bicim";
-import { KATMANLAR } from "@/lib/sabitler";
-import { tasarrufRengi } from "@/lib/renk";
-import { SAHTE_OSB_SINIRI } from "@/mocks/veri";
+import { KATMANLAR, OSB_SINIR_KUTUSU as K } from "@/lib/sabitler";
+import { catiRengi } from "@/lib/renk";
 import { useHaritaDurumu } from "@/store/harita";
 import type { BinaOzelligi } from "@/types/gecici";
 
-/** Açılışta bütün OSB sınırı ekrana sığar (telefonda da). */
-const OSB_ACILIS_SINIRI = L.geoJSON(SAHTE_OSB_SINIRI).getBounds();
+/** Açılış görünümü: Manisa OSB çevresi. Seçili OSB yüklenince ona sığdırılır. */
+const ACILIS_SINIRI = L.latLngBounds([K.guney, K.bati], [K.kuzey, K.dogu]);
 
 /**
- * Gerçek veride OSB sınırı için henüz uç yok; sahte sınır yanlış yerde durmasın diye
- * açılışta harita binaların kapsadığı alana sığdırılır.
+ * Seçili OSB değişince (ve ilk açılışta) harita o OSB'ye sığar: OSB'nin sınır kutusu varsa ona,
+ * yoksa (GET /osblar henüz yayında değilse) binaların kapsadığı alana.
  */
-function BinalaraSigdir() {
+function OsbGorunumu() {
   const harita = useMap();
-  const { data } = useBinalar();
-  const sigdirildi = useRef(false);
+  const osbId = useHaritaDurumu((d) => d.seciliOsb);
+  const osb = useSeciliOsb();
+  const { data: binalar } = useBinalar();
+  const sigdirilan = useRef<string | null>(null);
+
   useEffect(() => {
-    if (SAHTE_VERI || sigdirildi.current || !data?.features.length) return;
-    harita.fitBounds(L.geoJSON(data as GeoJSON.FeatureCollection).getBounds(), { padding: [16, 16] });
-    sigdirildi.current = true;
-  }, [data, harita]);
+    if (sigdirilan.current === osbId) return;
+    let sinir: L.LatLngBounds | null = null;
+    if (osb) {
+      const k = osb.sinir_kutusu;
+      sinir = L.latLngBounds([k.guney, k.bati], [k.kuzey, k.dogu]);
+    } else if (binalar?.features.length) {
+      sinir = L.geoJSON(binalar as GeoJSON.FeatureCollection).getBounds();
+    }
+    if (!sinir?.isValid()) return;
+    harita.flyToBounds(sinir, { padding: [24, 24], duration: sigdirilan.current === null ? 0 : 0.9 });
+    sigdirilan.current = osbId;
+  }, [osbId, osb, binalar, harita]);
+
   return null;
+}
+
+/** Seçili OSB'nin sınırı (GET /osblar'daki `sinir`). */
+function OsbSiniri() {
+  const osb = useSeciliOsb();
+  if (!osb || osb.sinir.length < 3) return null;
+  const halka = osb.sinir.map((n) => [n.lon, n.lat]);
+  const ilk = halka[0];
+  const son = halka[halka.length - 1];
+  if (ilk[0] !== son[0] || ilk[1] !== son[1]) halka.push(ilk);
+  const ozellik: GeoJSON.Feature<GeoJSON.Polygon> = {
+    type: "Feature",
+    properties: { ad: osb.ad },
+    geometry: { type: "Polygon", coordinates: [halka] },
+  };
+  return (
+    <GeoJSON
+      key={osb.id}
+      data={ozellik}
+      interactive={false}
+      style={{ color: "#38bdf8", weight: 2.5, dashArray: "6 6", fillOpacity: 0.04 }}
+    />
+  );
 }
 
 function TrafoKatmani() {
@@ -92,6 +125,8 @@ function Catilar() {
   const hesaplar = useHesapSozlugu();
   const seciliId = useHaritaDurumu((d) => d.seciliBinaId);
   const binaSec = useHaritaDurumu((d) => d.binaSec);
+  const renkModu = useHaritaDurumu((d) => d.renkModu);
+  const osb = useHaritaDurumu((d) => d.seciliOsb);
   const katmanRef = useRef<L.GeoJSON>(null);
 
   const stil = useCallback(
@@ -101,11 +136,11 @@ function Catilar() {
       return {
         color: secili ? "#0ea5e9" : "#1f2937",
         weight: secili ? 3 : 0.8,
-        fillColor: tasarrufRengi(id === undefined ? undefined : hesaplar.get(id)?.tasarruf_tl),
+        fillColor: catiRengi(id === undefined ? undefined : hesaplar.get(id), renkModu),
         fillOpacity: secili ? 0.85 : 0.7,
       };
     },
-    [hesaplar, seciliId],
+    [hesaplar, seciliId, renkModu],
   );
 
   // Hesap ya da seçim değişince katmanı yeniden oluşturmadan yalnızca renkleri güncelle.
@@ -123,6 +158,8 @@ function Catilar() {
 
   return (
     <GeoJSON
+      // OSB değişince katman yeniden kurulur (react-leaflet `data` değişimini izlemez).
+      key={osb}
       ref={katmanRef}
       data={data as GeoJSON.FeatureCollection}
       style={stil}
@@ -155,7 +192,7 @@ export default function Harita() {
 
   return (
     <MapContainer
-      bounds={OSB_ACILIS_SINIRI}
+      bounds={ACILIS_SINIRI}
       boundsOptions={{ padding: [16, 16] }}
       preferCanvas
       zoomSnap={0.25}
@@ -168,16 +205,10 @@ export default function Harita() {
         attribution={katman.atif}
         maxZoom={katman.maksimumYakinlastirma}
       />
-      {SAHTE_VERI && (
-        <GeoJSON
-          data={SAHTE_OSB_SINIRI}
-          interactive={false}
-          style={{ color: "#38bdf8", weight: 2.5, dashArray: "6 6", fillOpacity: 0.04 }}
-        />
-      )}
+      <OsbSiniri />
       <Catilar />
       <TrafoKatmani />
-      <BinalaraSigdir />
+      <OsbGorunumu />
       <Odaklayici />
       <SecimTemizleyici />
     </MapContainer>

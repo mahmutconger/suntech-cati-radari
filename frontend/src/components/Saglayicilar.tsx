@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState, type ReactNode } from "react";
+import { VarsayimEsitleyici } from "@/hooks/veri";
 import { firebaseAuth } from "@/lib/firebase";
 import { useOturum } from "@/store/oturum";
 
@@ -30,6 +31,7 @@ export function Saglayicilar({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={istemci}>
       <OturumDinleyici />
+      <VarsayimEsitleyici />
       {children}
     </QueryClientProvider>
   );
