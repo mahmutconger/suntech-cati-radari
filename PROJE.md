@@ -64,7 +64,7 @@ Jüri ağırlıkları: yenilikçilik %20, teknik uygulanabilirlik %20, yeşil d�
 
 ### 4.2 Ek özellikler (19:00'dan sonra)
 
-- **Üyelik, giriş, veritabanı:** firma e-posta ve şifreyle kaydolup girer, analizini ve tüketimini kaydeder, "Kayıtlarım"da görür.
+- **Üyelik, giriş, veritabanı:** Firebase Auth ile e-posta ve şifreyle kaydolup girer, analizini ve tüketimini kaydeder, "Kayıtlarım"da görür.
 - **Uydu görüntüsünden panel tespiti:** çatı kartındaki düğmeyle Gemini çatının uydu görüntüsüne bakar: panel var mı, çatının ne kadarını kaplıyor. 10 çatıda elle doğruluk ölçümü yapılır.
 - **Saatlik simülasyon ve pil:** PVGIS'in saatlik üretimi; tek, iki ya da üç vardiya tüketim profili; saatlik mahsuplaşma; pil kapasitesi.
 - **Şebeke ve trafo:** "şebekeye vermeden" seçeneği; OSM'deki trafo merkezleri haritada, kalan kapasite elle girilir.
@@ -100,7 +100,8 @@ Sayaç verisiyle gerçek tüketim profili, bankalarla entegrasyon, uydu tespitin
 flowchart LR
   K["Kullanıcı<br/>tarayıcı veya telefon"] --> W["Frontend<br/>Next.js, Vercel"]
   W -- "REST /api/v1" --> A["Backend<br/>FastAPI, Vercel"]
-  A --> DB[("PostgreSQL + PostGIS<br/>Neon")]
+  A --> DB[("Firestore<br/>Firebase")]
+  A --> FA["Firebase Auth"]
   A --> GM["Gemini API"]
   A --> UY["Uydu karoları"]
   OSM["OpenStreetMap Overpass"] --> VY["scripts/<br/>veri yükleme"]
@@ -113,9 +114,9 @@ flowchart LR
 | Katman | Seçim | Neden |
 |---|---|---|
 | Backend | Python 3.12, FastAPI, Pydantic v2 | Takımın backend dili; OpenAPI şemasını kendisi üretir |
-| Veritabanı | PostgreSQL + PostGIS (Neon, Vercel Marketplace, ücretsiz plan) | Mekânsal sorgular veritabanında, GIST indeksleri; Neon yalnızca veritabanı verir, giriş ve API bizde |
-| ORM | SQLAlchemy 2 + GeoAlchemy2 | PostGIS fonksiyonlarını Python'dan çağırmak |
-| Giriş | Kendi sistemimiz: e-posta ve şifre, argon2 ile hash, backend'in imzaladığı JWT | E-posta gönderilmez, demoda kayıt anında olur; dış bağımlılık yok |
+| Veritabanı | Cloud Firestore (Firebase, ücretsiz Spark planı) | NoSQL belge veritabanı; ~600 bina istemciye yüklenir, mekânsal filtreleme JS'de; kurulum ve migration derdi yok |
+| Firebase SDK | firebase-admin (Python) | Backend'den Firestore okuma/yazma ve token doğrulama |
+| Giriş | Firebase Authentication (e-posta ve şifre) | Kayıt, giriş, token yönetimi Firebase'de; backend token'ı doğrular |
 | Frontend | Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui | Mimari prompttaki yığın |
 | Veri ve durum | TanStack Query (sunucu verisi), Zustand (arayüz durumu) | İkisi ayrı tutulur |
 | Harita | Leaflet + react-leaflet; OpenStreetMap ve Esri World Imagery katmanları | Ücretsiz, kart gerekmez |
@@ -136,9 +137,9 @@ Takımın mimari promptu referans alındı. Alınanlar:
 - **Repository deseni ve bağımlılık enjeksiyonu:** depolar portlar üzerinden, FastAPI `Depends` ile verilir.
 - **Sonuç (Result) deseni:** use case'ler hata fırlatmak yerine `Sonuc` döner, router bunu HTTP koduna çevirir.
 - **DTO, domain varlığı ve veritabanı modeli ayrımı:** dışarıya hiçbir zaman veritabanı modeli açılmaz, eşleme elle yapılır.
-- **Mekânsal hesaplar veritabanında:** `ST_Contains`, `ST_DWithin`, `ST_Area`, `ST_Intersects` ve KNN (`<->`). Python'da bellekte mesafe hesabı yapılmaz.
+- **Mekânsal ön hesaplama:** alan, OSB sınırı kontrolü ve en yakın PVGIS noktası veri hattında bir kez hesaplanır ve Firestore'a yazılır. ~600 bina istemciye yüklenip JS'de bbox filtresi yapılır.
 - **Tip güvenliği:** TypeScript tipleri backend şemasından üretilir, elle yazılmaz.
-- **Performans:** GIST indeksleri, yanıt önbelleği, haritada sadeleştirilmiş geometri (Bölüm 12).
+- **Performans:** yanıt önbelleği, haritada sadeleştirilmiş geometri (Bölüm 12).
 - **Güvenlik:** rate limiting, API anahtarlarının sunucuda kalması, Docker ile yedek dağıtım (Bölüm 11).
 
 Bilinçli farklar:
@@ -146,7 +147,7 @@ Bilinçli farklar:
 - **ASP.NET Core yerine Python FastAPI:** takımın backend dili Python ve 24 saatte aynı mimari Python'da daha hızlı kurulur. Mimari kurallar aynen geçerli.
 - **MediatR yerine düz use case sınıfları:** Python'da karşılığı gereksiz bir katman olurdu.
 - **Google Maps yerine Leaflet:** Google Maps faturalandırma hesabı ve kart istiyor. Uydu görüntüsünü yapay zekâyla analiz etmek de Google'ın kullanım şartlarına takılabilir.
-- **Hazır giriş servisi yerine kendi giriş sistemimiz:** e-posta gönderimi ve yönlendirme ayarı gerekmez, jüri demoda anında kayıt olur. Şifre sıfırlama ve e-posta doğrulaması yol haritasında.
+- **Firebase Authentication:** e-posta ve şifre ile kayıt/giriş; token yönetimi ve şifre sıfırlama Firebase'de hazır. Backend `firebase-admin` ile token doğrular. argon2 ve kendi JWT sistemimiz gerekmez.
 - **Kampüs modülleri yok:** kat planı, ders programı, ring servisi gibi modüller bu projeye ait değil.
 
 ### 5.4 Backend katmanları
@@ -154,12 +155,12 @@ Bilinçli farklar:
 ```
 api (ince router'lar) ──► application (use case'ler, portlar) ──► domain (saf hesap)
                                     ▲
-infrastructure (PostGIS, Gemini, PVGIS, uydu) ── portları uygular
+infrastructure (Firestore, Firebase Auth, Gemini, PVGIS, uydu) ── portları uygular
 ```
 
 - **domain:** dış bağımlılığı olmayan saf Python. Varlıklar (`Bina`, `Varsayimlar`, `HesapSonucu`) ve hesap fonksiyonları. Veritabanını, HTTP'yi ya da Gemini'yi bilmez. Birim testleri burada.
 - **application:** use case'ler. Her özellik kendi klasöründe; `sorgular.py` ve `komutlar.py` ayrı. Dış dünyaya portlar (`typing.Protocol`) üzerinden erişir: `BinaDeposu`, `KayitDeposu`, `KullaniciDeposu`, `UyduIstemcisi`, `DilModeli`.
-- **infrastructure:** portların gerçek uygulamaları. PostGIS depoları (SQLAlchemy + GeoAlchemy2); Gemini, PVGIS, Overpass ve uydu karosu istemcileri; şifre hash'leme (argon2), JWT üretme ve doğrulama.
+- **infrastructure:** portların gerçek uygulamaları. Firestore depoları (firebase-admin); Gemini, PVGIS, Overpass ve uydu karosu istemcileri; Firebase Auth token doğrulama.
 - **api:** FastAPI router'ları. Girdiyi DTO ile doğrular, use case'i çağırır, `Sonuc`'u HTTP yanıtına çevirir. İş mantığı içermez.
 - **schemas:** Pydantic DTO'ları. Özellik başına bir dosya; böylece iki kişi aynı dosyaya yazmaz.
 
@@ -181,7 +182,7 @@ class Sonuc(Generic[T]):
 - **Harita:** Leaflet sunucu tarafında çalışmadığı için harita bileşeni yalnızca istemcide yüklenir (`dynamic(..., { ssr: false })`). Leaflet'in canvas çizicisi kullanılır.
 - **Durum:** sunucu verisi TanStack Query'de, seçili bina ve kaydırıcı değerleri Zustand'da.
 - **Kaydırıcılar:** değişiklik 300 ms bekletilir (debounce), sonra `/hesap/toplu` çağrılır.
-- **Giriş:** form backend'in `/auth/kayit` ve `/auth/giris` uçlarına gider; dönen token korumalı isteklerde `Authorization` başlığına eklenir. Supabase istemcisi kullanılmaz.
+- **Giriş:** Firebase Auth SDK ile kayıt ve giriş yapılır; dönen ID token korumalı isteklerde `Authorization: Bearer <token>` başlığına eklenir. Backend `firebase-admin` ile token'ı doğrular.
 - **Tipler:** `npm run tipler` komutu backend'in OpenAPI şemasından `src/types/api.ts` dosyasını üretir. Bu dosya elle değiştirilmez.
 
 ### 5.6 Klasör yapısı ve sahiplik
@@ -191,7 +192,7 @@ suntech-cati-radari/
 ├─ PROJE.md, README.md, .gitignore, .env.example ........ Nazım
 ├─ .github/ (CODEOWNERS, PR şablonu) .................... Nazım
 ├─ docs/ (sunum, doğruluk ölçümü, görev planı) .......... Mehmet
-├─ db/migrations/ ....................................... Nazım
+├─ firebase/ (güvenlik kuralları, indeksler) ............ Nazım
 ├─ scripts/ (veri yükleme) .............................. Nazım
 ├─ backend/
 │  ├─ requirements.txt, Dockerfile, yayın ayarları ...... Nazım
@@ -220,77 +221,60 @@ suntech-cati-radari/
 
 ---
 
-## 6. Veri modeli (PostGIS)
+## 6. Veri modeli (Firestore)
 
-```mermaid
-erDiagram
-  OSB_SINIRLARI ||--o{ BINALAR : icerir
-  PVGIS_IZGARA ||--o{ BINALAR : verim
-  BINALAR ||--o{ KAYITLAR : analiz
-  BINALAR ||--o| UYDU_SONUCLARI : tespit
-  KULLANICILAR ||--o{ KAYITLAR : sahip
-  OSB_SINIRLARI {
-    int id PK
-    bigint osm_id
-    text ad
-    geometry geom "MultiPolygon 4326"
-  }
-  BINALAR {
-    int id PK
-    bigint osm_id
-    text ad
-    numeric alan_m2
-    numeric verim_kwh_kwp
-    boolean mevcut_ges
-    geometry geom "MultiPolygon 4326"
-    geometry merkez "Point 4326"
-    int osb_id FK
-  }
-  PVGIS_IZGARA {
-    int id PK
-    geometry nokta "Point 4326"
-    numeric yillik_kwh_kwp
-    real_dizi saatlik_wh "8760 deger"
-    date cekilme_tarihi
-  }
-  TRAFO_MERKEZLERI {
-    int id PK
-    bigint osm_id
-    text ad
-    geometry nokta "Point 4326"
-    numeric kalan_kapasite_mw
-    text kaynak
-  }
-  KULLANICILAR {
-    uuid id PK
-    text eposta "benzersiz"
-    text sifre_ozeti "argon2"
-    timestamptz olusturma
-  }
-  KAYITLAR {
-    uuid id PK
-    uuid kullanici_id FK
-    int bina_id FK
-    jsonb varsayimlar
-    jsonb tuketim
-    jsonb sonuc
-    timestamptz olusturma
-  }
-  UYDU_SONUCLARI {
-    int bina_id PK
-    text panel "var, yok, belirsiz"
-    numeric kaplama_orani
-    numeric guven
-    text model
-    timestamptz olusturma
-  }
+Firestore koleksiyonları:
+
+```
+binalar/{id}
+  osm_id: number
+  ad: string
+  alan_m2: number
+  verim_kwh_kwp: number
+  mevcut_ges: boolean
+  geom: array       // [{lon, lat}, ...]; Firestore iç içe diziyi kabul etmez
+  merkez: map        // {lat, lon}, representative_point
+  osb_id: string
+
+pvgis_izgara/{id}
+  nokta: GeoPoint
+  yillik_kwh_kwp: number
+  saatlik_wh: array  // 8760 değer
+  cekilme_tarihi: timestamp
+
+trafo_merkezleri/{id}
+  osm_id: number
+  ad: string
+  nokta: GeoPoint
+  kalan_kapasite_mw: number
+  kaynak: string
+
+kayitlar/{id}
+  kullanici_id: string   // Firebase Auth UID
+  bina_id: string
+  varsayimlar: map
+  tuketim: map
+  sonuc: map
+  olusturma: timestamp
+
+uydu_sonuclari/{bina_id}
+  panel: string          // "var", "yok", "belirsiz"
+  kaplama_orani: number
+  guven: number
+  model: string
+  olusturma: timestamp
+
+osb_sinirlari/{id}
+  osm_id: number
+  ad: string
+  geom: array            // koordinat dizisi
 ```
 
-- PostGIS ilk migration'da açılır: `CREATE EXTENSION IF NOT EXISTS postgis;`.
-- Geometriler EPSG:4326'da saklanır. Alan `ST_Area(geom::geography)`, mesafe geography tipiyle hesaplanır.
-- GIST indeksleri: `binalar.geom`, `binalar.merkez`, `pvgis_izgara.nokta`, `trafo_merkezleri.nokta`, `osb_sinirlari.geom`.
-- Yetki backend'de: `/kayitlar` uçları yalnızca token'daki kullanıcının satırlarını okur, yazar, siler. Veritabanı kuralı (RLS) kullanılmaz, çünkü backend veritabanına tek bir hesapla bağlanıyor.
-- `kullanicilar.eposta` benzersizdir. Şifrenin kendisi değil, yalnızca argon2 hash'i saklanır.
+- Kullanıcı bilgileri Firebase Auth'ta tutulur; Firestore'da ayrı `kullanicilar` koleksiyonu gerekmez.
+- Mekânsal veriler (alan, OSB sınırı kontrolü, en yakın PVGIS noktası) veri hattında ön hesaplanır ve bina belgesine yazılır.
+- ~600 bina istemciye yüklenir, bbox filtresi JavaScript'te yapılır.
+- Yetki backend'de: `/kayitlar` uçları yalnızca token'daki kullanıcının belgelerini okur, yazar, siler.
+- Firestore güvenlik kuralları: backend `firebase-admin` ile erişir (admin SDK kuralları atlar); istemci doğrudan Firestore'a bağlanmaz.
 - Varsayılan değerler ve kaynakları kodda tutulur (`backend/app/domain/varsayilanlar.py`), veritabanında değil.
 
 ---
@@ -300,15 +284,8 @@ erDiagram
 1. **Ham veri.** Overpass'tan OSB sınırı (`way 808798100`) ve dikdörtgen içindeki binalar çekilir:
    `[out:json][timeout:120];way["building"](38.6075,27.2947,38.6367,27.3766);out geom;`
    Sunucu meşgulse sırayla overpass-api.de, maps.mail.ru aynası, overpass.kumi.systems denenir. Ham yanıt `data/raw/` altına kaydedilir; bu klasör repoya girmez.
-2. **Süzme ve alan, veritabanında.** Ham binalar `ham_binalar` tablosuna yüklenir, sonra:
-   ```sql
-   INSERT INTO binalar (osm_id, ad, geom, merkez, alan_m2, osb_id)
-   SELECT h.osm_id, h.ad, h.geom, ST_PointOnSurface(h.geom), ST_Area(h.geom::geography), o.id
-   FROM ham_binalar h
-   JOIN osb_sinirlari o ON ST_Contains(o.geom, ST_PointOnSurface(h.geom))
-   WHERE ST_Area(h.geom::geography) >= 1000;
-   ```
-3. **Güneş verisi.** PVGIS'ten OSB'yi 0,01 derecelik ızgarayla kaplayan 30-40 noktada yıllık üretim (yatay panel, %14 kayıp) ve bir yıllık saatlik üretim çekilir. Her bina en yakın ızgara noktasının değerini alır (KNN, `<->`). Saatlik veri `seriescalc` ucundan gelir: SARAH3, 2023 yılı, 8.760 saat, 1 kWp için watt cinsinden `P`. Zaman damgaları UTC'dir. PVGIS IP başına saniyede 30 isteğe izin verir.
+2. **Süzme ve alan, Python'da.** Ham binalar Shapely ile işlenir: alan hesabı (`area` on geography), OSB sınırı kontrolü (`contains`), merkez noktası (`representative_point`). 1.000 m² üstü binalar Firestore'a yazılır.
+3. **Güneş verisi.** PVGIS'ten OSB'yi 0,01 derecelik ızgarayla kaplayan 30-40 noktada yıllık üretim (yatay panel, %14 kayıp) ve bir yıllık saatlik üretim çekilir. Her bina en yakın ızgara noktasının değerini alır (Haversine mesafe, Python'da). Saatlik veri `seriescalc` ucundan gelir: SARAH3, 2023 yılı, 8.760 saat, 1 kWp için watt cinsinden `P`. Zaman damgaları UTC'dir. PVGIS IP başına saniyede 30 isteğe izin verir.
 4. **Trafo ve mevcut paneller.** OSM'den trafo merkezleri (`power=substation`) ve güneş paneli etiketli alanlar (`generator:source=solar`) çekilir; panelli çatılar `mevcut_ges` ile işaretlenir.
 5. **Kontrol.** Bina sayısı ve toplam alan yazdırılır; bilinen 3 binanın alanı uydu ölçümüyle karşılaştırılır.
 
@@ -365,10 +342,8 @@ Taban adres `/api/v1`. Bütün yanıtlar JSON. Hata biçimi: `{"hata": {"kod": "
 | POST | `/sohbet` | cevap ve kullanılan araçlar | Nazım | rate limit |
 | POST | `/uydu/{bina_id}` | `UyduSonucu` | Nazım | önbellekli, rate limit |
 | GET | `/trafo-merkezleri` | GeoJSON | Nazım | |
-| POST | `/auth/kayit` | token | Nazım | e-posta ve şifre; rate limit |
-| POST | `/auth/giris` | token | Nazım | rate limit |
-| GET | `/auth/ben` | kullanıcı bilgisi | Nazım | JWT zorunlu |
-| GET, POST, DELETE | `/kayitlar` | kayıtlar | Nazım | JWT zorunlu |
+| GET | `/auth/ben` | kullanıcı bilgisi | Nazım | Firebase ID token zorunlu |
+| GET, POST, DELETE | `/kayitlar` | kayıtlar | Nazım | Firebase ID token zorunlu |
 
 Ana DTO'lar (alan adları 3 Kasım 10:30 hizalamasında kesinleşir):
 
@@ -408,11 +383,11 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 
 ## 11. Güvenlik
 
-- **Anahtarlar sunucuda.** Gemini anahtarı, veritabanı bağlantısı ve JWT imza anahtarı (`JWT_GIZLI`) yalnızca backend ortam değişkenlerinde. Frontend'e gizli değer gitmez; frontend yalnızca kendi API'mizle konuşur, veritabanına doğrudan bağlanmaz.
-- **Repoda sır yok.** `.env` dosyaları `.gitignore`'da; `.env.example` yalnızca değişken adlarını içerir. GitHub'da secret scanning ve push protection açık.
-- **Kimlik doğrulama.** Kendi sistemimiz: e-posta ve şifre. Şifreler argon2 ile hash'lenir (`argon2-cffi`); şifrenin kendisi hiçbir yerde saklanmaz, günlüğe yazılmaz. Girişte backend `JWT_GIZLI` ile imzalı bir JWT döner (HS256, örneğin 24 saat geçerli); frontend korumalı isteklerde `Authorization: Bearer <token>` gönderir. Şifre sıfırlama ve e-posta doğrulaması yok, yol haritasında.
+- **Anahtarlar sunucuda.** Gemini anahtarı ve Firebase servis hesabı anahtarı yalnızca backend ortam değişkenlerinde. Frontend'e yalnızca Firebase web API anahtarı (istemci tarafı, gizli değil) ve proje kimliği gider; frontend veritabanına doğrudan bağlanmaz.
+- **Repoda sır yok.** `.env` dosyaları ve Firebase servis hesabı anahtarı (`.json`) `.gitignore`'da; `.env.example` yalnızca değişken adlarını içerir. GitHub'da secret scanning ve push protection açık.
+- **Kimlik doğrulama.** Firebase Authentication: e-posta ve şifre. Kayıt, giriş ve token yönetimi Firebase SDK'da. Frontend `firebase/auth` ile giriş yapar, dönen ID token'ı korumalı isteklerde `Authorization: Bearer <token>` gönderir. Backend `firebase-admin.auth.verify_id_token()` ile doğrular. Şifre sıfırlama Firebase'de hazır.
 - **Yetkilendirme.** Backend her kayıt sorgusunu token'daki kullanıcı kimliğiyle süzer; kullanıcı yalnızca kendi kayıtlarını görür ve siler. Roller: firma kullanıcısı ve OSB yöneticisi; yönetici yalnızca toplu sayıları görür.
-- **Rate limiting.** `/sohbet` ve `/uydu` için IP başına dakikada sınır (ör. 10 ve 5); `/auth/giris` ve `/auth/kayit` için şifre denemelerine karşı sıkı sınır (ör. dakikada 5); diğer uçlarda daha geniş bir genel sınır.
+- **Rate limiting.** `/sohbet` ve `/uydu` için IP başına dakikada sınır (ör. 10 ve 5); diğer uçlarda daha geniş bir genel sınır. Giriş denemesi sınırı Firebase Auth'ta zaten var.
 - **Girdi doğrulama.** Bütün girdiler Pydantic şemalarıyla ve aralıklarıyla doğrulanır (oranlar 0-1, tarife 0-20 TL gibi). Tüketim CSV'si en çok 1 MB ve 8.784 satır.
 - **CORS.** Yalnızca frontend'in alan adları.
 - **Yapay zekâ güvenliği.** Asistanın araçları salt okunur, veritabanına yazamaz. Kullanıcı mesajı ve araç çıktıları talimat olarak değil veri olarak ele alınır. Cevap uzunluğu sınırlı.
@@ -425,32 +400,30 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 
 ## 12. Performans
 
-- GIST indeksleri (Bölüm 6).
-- `/binalar` yanıtı geometri sadeleştirilerek (`ST_SimplifyPreserveTopology`) ve önbellek başlığıyla (`Cache-Control: s-maxage=3600`) döner.
+- `/binalar` yanıtı önbellek başlığıyla (`Cache-Control: s-maxage=3600`) döner. ~600 bina ilk istekte yüklenir, sonrası önbellekten gelir.
 - Toplu hesap 600 bina için milisaniyeler sürer; kaydırıcı istekleri 300 ms bekletilir.
 - Haritada Leaflet'in canvas çizicisi; düşük yakınlaştırmada çatı merkezleri kümelenebilir.
 - Uydu sonuçları ve tekrar eden asistan soruları önbellekte.
-- Veritabanı bağlantısı: Vercel fonksiyonu Neon'un havuzlu adresini kullanır (`DATABASE_URL`, adreste `-pooler`, PgBouncer işlem modu); SQLAlchemy'de `NullPool`. Bu modda sürücünün hazır ifadeleri çalışır; SQL düzeyinde `PREPARE`, oturum `SET`'leri ve `LISTEN` çalışmaz. Migration'lar ve laptoptaki betikler doğrudan adresi kullanır (`DATABASE_URL_UNPOOLED`). Adres `postgres://` ya da `postgresql://` ile başlar; SQLAlchemy psycopg 3 için `postgresql+psycopg://` ister, kodda çevrilir. Neon boştayken uyuyabilir; demodan önce bir istek atılır. Değerler etkinlik günü `vercel env pull` sonrası kontrol edilir.
+- Firestore bağlantısı: `firebase-admin` SDK gRPC ile bağlanır, bağlantı havuzu yönetimi gerekmez. Soğuk başlangıç gecikmesi var; demodan önce bir istek atılır.
 
 ---
 
 ## 13. Yayın ve ortamlar
 
-- **Vercel:** aynı repodan iki proje. `frontend/` kökli web projesi ve `backend/` kökli API projesi. Frontend `/api/v1` isteklerini API projesine yönlendirir (Next.js rewrites); böylece CORS ve adres karmaşası azalır.
-- **Veritabanı:** Vercel Marketplace'ten Neon (ücretsiz plan). Storage → Connect Project ile yalnızca api projesine bağlanır; frontend veritabanına bağlanmaz. Önizleme dağıtımları için veritabanı dalı açma seçeneği kapalı kalır. Etkinlik günü `vercel integration discover` ile teyit edilir. Entegrasyonun eklediği değişkenler aşağıdaki tabloda "entegrasyon" diye işaretli; yerelde `vercel env pull` ile gelir.
+- **Backend:** Vercel'de `backend/` kökli API projesi (FastAPI). Fonksiyon bölgesi fra1.
+- **Frontend:** Firebase Hosting. Next.js çıktısı `firebase deploy --only hosting` ile yayınlanır. `firebase.json`'daki rewrites `/api/v1/**` isteklerini Vercel backend adresine yönlendirir; böylece CORS ve adres karmaşası azalır.
+- **Veritabanı:** Firebase projesi (Spark planı, ücretsiz). Firestore veritabanı oluşturulur; backend `firebase-admin` ile bağlanır. Frontend veritabanına doğrudan bağlanmaz, yalnızca backend API'si üzerinden erişir. Firebase Auth aynı projede.
 - **Dallar ve adresler:** her push bir önizleme adresi üretir; `main` dalı canlı yayındır.
 - **Yedek:** backend Docker imajı (Render ya da laptop), laptopta `uvicorn` + `cloudflared tunnel --url http://localhost:8000`, en son kayıtlı demo videosu.
 
 | Değişken | Nerede | Kim ekler | Not |
 |---|---|---|---|
 | `GEMINI_API_KEY` | backend | elle | gizli |
-| `DATABASE_URL` | backend | entegrasyon | Neon havuzlu adres, gizli; biçimi Bölüm 12'de |
-| `DATABASE_URL_UNPOOLED` | laptop: betikler, migration | entegrasyon | Neon doğrudan adres, gizli |
-| `JWT_GIZLI` | backend | elle | giriş token'larını imzalar; uzun ve rastgele, gizli |
+| `FIREBASE_SERVICE_ACCOUNT` | backend | elle | Firebase servis hesabı JSON'u (base64 veya dosya yolu), gizli |
+| `FIREBASE_PROJECT_ID` | backend, frontend | elle | Firebase proje kimliği |
+| `FIREBASE_API_KEY` | frontend | elle | Firebase web API anahtarı (istemci tarafı, gizli değil) |
 | `CORS_ORIGINS` | backend | elle | frontend adresleri |
 | `API_BASE_URL` | frontend | elle | rewrites hedefi |
-
-Entegrasyon ayrıca `PGHOST`, `PGHOST_UNPOOLED`, `PGUSER`, `PGDATABASE`, `PGPASSWORD` ve eski şablonlar için `POSTGRES_*` değişkenlerini ekler; kodda kullanılmazlar.
 
 ---
 
@@ -511,14 +484,14 @@ Ortak saatler: 09:15 kayıt ve Wi-Fi testi · 10:30 hizalama (DTO alanları, uç
 
 | Saat | Nazım | Mahmut | Mehmet |
 |---|---|---|---|
-| 10:00 | Neon kurulumu, backend iskeleti | Next.js kurulumu | domain varlıkları, varsayılanlar |
+| 10:00 | Firebase kurulumu, backend iskeleti | Next.js kurulumu | domain varlıkları, varsayılanlar |
 | 10:45 | veri hattı, `/binalar` | harita, sahte veri | yıllık hesap ve testler, yer tutucular |
 | 12:30 | birleştirme 1 | birleştirme 1 | birleştirme 1 |
 | 13:45 | PVGIS, trafo, bina uçları | tipler, gerçek veri, çatı kartı | hesap use case'leri, `/hesap` uçları |
 | 15:00 | birleştirme 2 | birleştirme 2 | birleştirme 2 |
 | 15:15 | asistan, rate limit | kaydırıcılar, OSB paneli, arama | saatlik simülasyon, pil |
 | 18:00 | birleştirme 3 | birleştirme 3 | birleştirme 3 |
-| 19:15 | giriş (kayıt ve giriş uçları), kayıtlar | sohbet kutusu, giriş ekranı | kredi, statik, şebeke hesapları |
+| 19:15 | /auth/ben, kayıtlar uçları | sohbet kutusu, giriş ekranı (Firebase Auth) | kredi, statik, şebeke hesapları |
 | 22:00 | birleştirme 4, uydu tespiti | uydu düğmesi, trafo katmanı | simülasyon bileşenleri, varsayımlar sayfası |
 | 00:00 | birleştirme 5 | birleştirme 5 | birleştirme 5, 10 çatı elle kontrol |
 | 00:30 | hatalar, demo önbelleği | telefon görünümü | uyku |
@@ -632,8 +605,8 @@ Mehmet anlatır, Mahmut ekranı kullanır, Nazım teknik soruları alır. İnter
 | Overpass meşgul | Ayna sunucular; ham yanıt kaydedilir, tekrar çekilmez |
 | Gemini kotası biter | Sahte cevapla geliştirme, önbellek, faturalandırma sigortası, yedek video |
 | Vercel'de Python sorunu | Docker imajı ile Render ya da laptop + cloudflared |
-| Veritabanı kurulumu gecikir | Laptopta Docker'da PostGIS; backend laptopta uvicorn + cloudflared ile yayınlanır |
-| Giriş yetişmez | "Bağlantıyla kaydet"e sadeleşir |
+| Firebase kurulumu gecikir | Firebase Console'da proje oluşturma basit; alternatif olarak JSON dosyalarına yazılır, sonra yüklenir |
+| Giriş yetişmez | Firebase Auth temel giriş dakikalar içinde hazır; yetişmezse "bağlantıyla kaydet"e sadeleşir |
 | Uydu katmanının kullanım şartı uygun değil | Uydu tespiti yalnızca önceden hazırlanmış örnekle gösterilir ya da çıkarılır |
 | Wi-Fi yok | Telefon interneti |
 | Yorgunluk | İkişer saat uyku nöbeti, 07:30 kod dondurma |
@@ -683,8 +656,9 @@ Ortak işaretlenen liste takım sayfasında: https://claude.ai/artifact/P8PMEj6M
 - Ticari binalarda PV potansiyeli (KFUPM): https://pure.kfupm.edu.sa/en/publications/assessment-of-solar-pv-potential-in-commercial-buildings/
 - Manisa Enerji ve Akbank protokolü: https://www.manisa.bel.tr/Haberler/45822_manisa-enerji-ve-akbanktan-cati-ges-yatirimlari-ic.aspx
 - Gemini API kotaları: https://ai.google.dev/gemini-api/docs/rate-limits
-- Neon ve Vercel entegrasyonu: https://neon.com/docs/guides/vercel-managed-integration
-- Neon bağlantı havuzu: https://neon.com/docs/connect/connection-pooling
+- Firebase Admin SDK: https://firebase.google.com/docs/admin/setup
+- Cloud Firestore: https://firebase.google.com/docs/firestore
+- Firebase Authentication: https://firebase.google.com/docs/auth
 - Vercel Hobby planında özel repo ve takım arkadaşı commit'leri: https://community.vercel.com/t/hobby-account-private-repo-collaborators-deployment-blocked/1030
 - Etkinlik sayfası: https://manisatto.com.tr/p/etkinlikler-hackathon
 - Milliyet (AA), 3 Aralık 2025: "Türkiye'nin 'yeşil OSB' haritası büyüdü!"
