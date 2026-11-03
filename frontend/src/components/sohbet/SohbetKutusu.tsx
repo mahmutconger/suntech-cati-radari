@@ -167,7 +167,7 @@ export function SohbetKutusu() {
           <input
             value={metin}
             onChange={(e) => setMetin(e.target.value)}
-            maxLength={500}
+            maxLength={EN_COK_KARAKTER}
             placeholder="Sorunuzu yazın"
             aria-label="Asistana soru"
             className="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-amber-400"
@@ -180,8 +180,13 @@ export function SohbetKutusu() {
             Gönder
           </button>
         </div>
-        <p className="mt-1.5 text-[10px] leading-snug text-slate-500">
-          Yazdıklarınız Google Gemini API&apos;sine gider. Firma sırrı yazmayın.
+        <p className="mt-1.5 flex justify-between gap-2 text-[10px] leading-snug text-slate-500">
+          <span>Yazdıklarınız Google Gemini API&apos;sine gider. Firma sırrı yazmayın.</span>
+          {metin.length > EN_COK_KARAKTER - 200 && (
+            <span className="shrink-0 tabular-nums text-amber-300">
+              {metin.length}/{EN_COK_KARAKTER}
+            </span>
+          )}
         </p>
       </form>
     </div>
