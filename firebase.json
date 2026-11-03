@@ -1,21 +1,4 @@
 {
-  "hosting": {
-    "public": "frontend/out",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [
-      {
-        "source": "/api/v1/**",
-        "run": {
-          "serviceId": "api",
-          "region": "europe-west1"
-        }
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  },
   "firestore": {
     "rules": "firebase/firestore.rules",
     "indexes": "firebase/firestore.indexes.json"

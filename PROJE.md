@@ -98,8 +98,8 @@ Sayaç verisiyle gerçek tüketim profili, bankalarla entegrasyon, uydu tespitin
 
 ```mermaid
 flowchart LR
-  K["Kullanıcı<br/>tarayıcı veya telefon"] --> W["Frontend<br/>Next.js, Vercel"]
-  W -- "REST /api/v1" --> A["Backend<br/>FastAPI, Vercel"]
+  K["Kullanıcı<br/>tarayıcı veya telefon"] --> W["Frontend<br/>Next.js, Firebase App Hosting"]
+  W -- "REST /api/v1" --> A["Backend<br/>FastAPI, Cloud Run"]
   A --> DB[("Firestore<br/>Firebase")]
   A --> FA["Firebase Auth"]
   A --> GM["Gemini API"]
@@ -123,8 +123,8 @@ flowchart LR
 | Tip güvenliği | FastAPI'nin OpenAPI şemasından `openapi-typescript` ile üretilen tipler | Backend DTO'ları ile TypeScript tipleri aynı |
 | Yapay zekâ | Gemini API (Google AI Studio, ücretsiz katman) | Araç çağırma ve görsel analiz |
 | Grafik | Recharts | Günlük üretim ve tüketim grafiği |
-| Yayın | Vercel (aynı repodan iki proje: web ve api), GitHub | Ücretsiz, her push'ta otomatik yayın |
-| Yedek yayın | Backend için Docker; laptopta uvicorn + cloudflared tüneli | Vercel'de sorun çıkarsa |
+| Yayın | Firebase App Hosting (frontend), Cloud Run (backend), GitHub | Tek Firebase projesi, `main`'e push'ta otomatik yayın |
+| Yedek yayın | Laptopta uvicorn + cloudflared tüneli | Cloud Run'da sorun çıkarsa |
 
 Sürümler kurulum günü güncel kararlı sürümler olacak ve kilit dosyalarıyla (`package-lock.json`, `requirements.txt`) sabitlenecek.
 
@@ -237,7 +237,7 @@ binalar/{id}
   osb_id: string
 
 pvgis_izgara/{id}
-  nokta: GeoPoint
+  nokta: map         // {lat, lon}; belge kimliği "38.605_27.295"
   yillik_kwh_kwp: number
   saatlik_wh: array  // 8760 değer
   cekilme_tarihi: timestamp
@@ -394,7 +394,7 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 - **Kişisel veri.** Kullanıcı tablosunda yalnızca e-posta ve şifre hash'i, kayıtlarda kullanıcı kimliği ve analiz verisi tutulur. Asistana yazılanların Google'a gittiği ekranda yazar ("Firma sırrı yazmayın").
 - **Hata mesajları.** İstemciye iç ayrıntı (yığın izi, SQL) gönderilmez; ayrıntı sunucu günlüğünde kalır.
 - **Bağımlılıklar.** Sürümler kilit dosyalarıyla sabitlenir.
-- **Dağıtım.** HTTPS Vercel'de hazır. Yedek dağıtım için backend Docker imajı.
+- **Dağıtım.** HTTPS App Hosting ve Cloud Run'da hazır.
 
 ---
 
@@ -410,9 +410,9 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 
 ## 13. Yayın ve ortamlar
 
-- **Backend:** Vercel'de `backend/` kökli API projesi (FastAPI). Fonksiyon bölgesi fra1.
-- **Frontend:** Firebase Hosting. Next.js çıktısı `firebase deploy --only hosting` ile yayınlanır. `firebase.json`'daki rewrites `/api/v1/**` isteklerini Vercel backend adresine yönlendirir; böylece CORS ve adres karmaşası azalır.
-- **Veritabanı:** Firebase projesi (Spark planı, ücretsiz). Firestore veritabanı oluşturulur; backend `firebase-admin` ile bağlanır. Frontend veritabanına doğrudan bağlanmaz, yalnızca backend API'si üzerinden erişir. Firebase Auth aynı projede.
+- **Backend:** Cloud Run'da `backend/Dockerfile` ile FastAPI, bölge europe-west3 (Firestore ile aynı).
+- **Frontend:** Firebase App Hosting, kök dizin `frontend/`, ayarlar `frontend/apphosting.yaml`'da. `next.config.ts`'deki rewrites `/api/v1/*` isteklerini Cloud Run adresine (`API_BASE_URL`) yönlendirir; böylece CORS ve adres karmaşası azalır.
+- **Veritabanı:** Firebase projesi. App Hosting ve Cloud Run Blaze planı (kartlı, ücretsiz kotası olan) ister. Firestore veritabanı oluşturulur; backend `firebase-admin` ile bağlanır. Frontend veritabanına doğrudan bağlanmaz, yalnızca backend API'si üzerinden erişir. Firebase Auth aynı projede.
 - **Dallar ve adresler:** her push bir önizleme adresi üretir; `main` dalı canlı yayındır.
 - **Yedek:** backend Docker imajı (Render ya da laptop), laptopta `uvicorn` + `cloudflared tunnel --url http://localhost:8000`, en son kayıtlı demo videosu.
 
@@ -604,7 +604,7 @@ Mehmet anlatır, Mahmut ekranı kullanır, Nazım teknik soruları alır. İnter
 | Organizatör önceden kod yazmayı yasaklar | Repoda kod yok; her şey etkinlikte yazılır |
 | Overpass meşgul | Ayna sunucular; ham yanıt kaydedilir, tekrar çekilmez |
 | Gemini kotası biter | Sahte cevapla geliştirme, önbellek, faturalandırma sigortası, yedek video |
-| Vercel'de Python sorunu | Docker imajı ile Render ya da laptop + cloudflared |
+| Cloud Run'da sorun | Laptop + cloudflared |
 | Firebase kurulumu gecikir | Firebase Console'da proje oluşturma basit; alternatif olarak JSON dosyalarına yazılır, sonra yüklenir |
 | Giriş yetişmez | Firebase Auth temel giriş dakikalar içinde hazır; yetişmezse "bağlantıyla kaydet"e sadeleşir |
 | Uydu katmanının kullanım şartı uygun değil | Uydu tespiti yalnızca önceden hazırlanmış örnekle gösterilir ya da çıkarılır |

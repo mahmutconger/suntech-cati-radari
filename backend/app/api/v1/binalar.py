@@ -14,10 +14,10 @@ def _feature(b: dict) -> dict:
     halka = [[p["lon"], p["lat"]] for p in b["geom"]]
     return {
         "type": "Feature",
-        "id": str(b["osm_id"]),
+        "id": b["osm_id"],
         "geometry": {"type": "Polygon", "coordinates": [halka]},
         "properties": {
-            "id": str(b["osm_id"]),
+            "id": b["osm_id"],
             "ad": b.get("ad", ""),
             "alan_m2": b["alan_m2"],
             "merkez": [b["merkez"]["lon"], b["merkez"]["lat"]],
