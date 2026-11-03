@@ -115,7 +115,7 @@ def tespit_et(bina_id: int) -> Sonuc[dict]:
         response_mime_type="application/json",
         response_json_schema=SEMA,
         temperature=0,
-        max_output_tokens=400,
+        max_output_tokens=2048,  # düşünen modellerde düşünme de bu sınırdan yer; 400'de JSON yarım kalıyordu
     )
     yanit, model = uret(icerik, config)
     try:

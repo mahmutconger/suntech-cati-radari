@@ -385,7 +385,7 @@ UyduSonucu   { bina_id, panel: "var" | "yok" | "belirsiz", kaplama_orani, guven 
 - **Araçlar:** `osb_ozeti(en_cok_geri_odeme_yil?)`, `bina_bul(q)`, `bina_detayi(bina_id)` (hesap sonucu dahil), `sirala(olcut, adet ≤ 20)`. Hepsi salt okunur ve Mehmet'in hesap use case'lerini çağırır.
 - **Sistem talimatı:** "Sayıları yalnızca araç çıktısından al, kendin hesaplama. Araçta olmayan bir şey sorulursa bilmediğini söyle. Ön fizibilite notunun sonuna şunu ekle: Bu bir ön taramadır. Çatı statiği, mevcut tesisat ve şebeke bağlantısı için yerinde keşif gerekir."
 - **Ön fizibilite notu:** bina ve konum, kullanılan varsayımlar, sonuç tablosu, dikkat edilecekler (statik, mevcut GES, trafo kapasitesi), sonraki adım (yerinde keşif ve en az iki teklif).
-- **Model:** `GEMINI_MODELLER` sırasıyla gemini-3.6-flash, gemini-3.5-flash, gemini-3.5-flash-lite; 503 ya da 429 gelince sıradakine geçilir (3.7/3.8 Flash 3 Kasım'da sürekli meşguldü, 2.5 yeni kullanıcıya kapalı). `GEMINI_SAHTE=1` iken istek gitmez. Ücretsiz katmanda model başına günde 20 istek var (3 Kasım'da ölçüldü); sunum için faturalandırması açık projeden anahtar gerekir.
+- **Model:** `GEMINI_MODELLER` sırasıyla gemini-3.6-flash, gemini-3-flash-preview, gemini-3.5-flash, gemini-3.1-flash-lite, gemini-flash-lite-latest, gemini-3.5-flash-lite; 429, 500, 503 ya da 504 gelince sıradakine geçilir. Her modelin kotası ayrı, zincir uzadıkça günlük toplam hak artar (3.7/3.8 Flash 3 Kasım'da sürekli meşguldü, 2.5 yeni kullanıcıya kapalı). Düşünen modeller için uydu çıktı sınırı 2048 token. `GEMINI_SAHTE=1` iken istek gitmez. Ücretsiz katmanda model başına günde 20 istek var (3 Kasım'da ölçüldü); sunum için faturalandırması açık projeden anahtar gerekir.
 
 ### 10.2 Uydu tespiti (Nazım)
 
