@@ -68,7 +68,7 @@ export function KayitlarListesi() {
             onClick={() => {
               // Kaydedilen varsayım ve tüketimle haritada aç.
               varsayimGuncelle(k.varsayimlar);
-              tuketimAyarla(k.bina_id, k.tuketim);
+              tuketimAyarla(k.bina_id, k.tuketim ?? null);
               binaSec(k.bina_id, true);
               router.push("/");
             }}

@@ -219,6 +219,14 @@ export function sahteUydu(id: number): UyduSonucu {
     panel,
     kaplama_orani: panel === "var" ? 0.35 : 0,
     guven: panel === "belirsiz" ? 0.45 : 0.85,
+    aciklama:
+      panel === "var"
+        ? "Çatının güney yarısında düzenli dizilmiş koyu mavi paneller görünüyor."
+        : panel === "yok"
+          ? "Çatı yüzeyi düz ve açık renkli; panel görünmüyor."
+          : "Görüntü çözünürlüğü düşük, gölge nedeniyle kesin değil.",
+    model: "sahte",
+    onbellekten: false,
   };
 }
 

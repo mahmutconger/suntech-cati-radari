@@ -6,6 +6,7 @@
 import { AramaCubugu } from "@/components/arama/AramaCubugu";
 import { KatmanSecici, Lejant, TrafoDugmesi } from "@/components/harita/HaritaKontrolleri";
 import { HaritaYukleyici } from "@/components/harita/HaritaYukleyici";
+import { VeriHatasi } from "@/components/harita/VeriHatasi";
 import { OturumMenusu } from "@/components/oturum/OturumMenusu";
 import { AltCekmece } from "@/components/panel/AltCekmece";
 import { PanelIcerigi } from "@/components/panel/PanelIcerigi";
@@ -25,7 +26,7 @@ export function AnaEkran() {
       </div>
 
       {/* Üst çubuk: telefonda logo + katman üstte, arama altta; masaüstünde tek satır */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-wrap items-center gap-2 p-3 md:right-[400px] md:flex-nowrap md:p-4">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-wrap items-center gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:right-[400px] md:flex-nowrap md:p-4">
         <div className="pointer-events-auto order-1 flex items-center gap-2 rounded-full bg-slate-900/85 px-3 py-2 shadow-lg backdrop-blur">
           <span aria-hidden className="text-base">☀️</span>
           <span className="hidden text-sm font-bold tracking-tight text-amber-300 min-[400px]:inline">Çatı Radarı</span>
@@ -38,6 +39,11 @@ export function AnaEkran() {
         <div className="pointer-events-auto order-3 w-full md:order-2 md:max-w-md">
           <AramaCubugu />
         </div>
+      </div>
+
+      {/* Veri hatası: üst çubuğun altında, ortada */}
+      <div className="pointer-events-none absolute inset-x-0 top-[124px] z-[1000] flex justify-center px-3 md:right-[400px] md:top-20">
+        <VeriHatasi />
       </div>
 
       {/* Lejant: masaüstünde sol alt; telefonda çekmecenin üstünde tek satır */}
