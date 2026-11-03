@@ -89,7 +89,7 @@ export function useBinaHesabi(id: number | null, tuketim: Tuketim | null) {
         ? bekle(sahteBinaHesap(id!, varsayimlar, tuketimGecikmeli), 120)
         : api.post<HesapSonucu>(`/hesap/bina/${id}`, {
             varsayimlar,
-            tuketim: tuketimGecikmeli,
+            yillik_tuketim_kwh: tuketimGecikmeli?.yillik_kwh ?? null,
           } satisfies BinaHesapIstegi),
     enabled: id !== null,
     placeholderData: keepPreviousData,

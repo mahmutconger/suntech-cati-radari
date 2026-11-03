@@ -34,10 +34,10 @@ export interface Tuketim {
   yillik_kwh: number;
 }
 
-/** POST /hesap/bina/{id} gövdesi */
+/** POST /hesap/bina/{id} gövdesi (Mehmet'in BinaHesapIstegi şeması) */
 export interface BinaHesapIstegi {
   varsayimlar: Varsayimlar;
-  tuketim: Tuketim | null;
+  yillik_tuketim_kwh: number | null;
 }
 
 /** POST /sohbet */
