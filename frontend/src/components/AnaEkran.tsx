@@ -8,6 +8,7 @@ import { KatmanSecici, Lejant } from "@/components/harita/HaritaKontrolleri";
 import { HaritaYukleyici } from "@/components/harita/HaritaYukleyici";
 import { AltCekmece } from "@/components/panel/AltCekmece";
 import { PanelIcerigi } from "@/components/panel/PanelIcerigi";
+import { SohbetKutusu } from "@/components/sohbet/SohbetKutusu";
 import { useMasaustu } from "@/hooks/useMasaustu";
 import { useHaritaDurumu } from "@/store/harita";
 
@@ -44,6 +45,11 @@ export function AnaEkran() {
       </div>
       <div className="pointer-events-none absolute bottom-[128px] left-3 z-[900] md:hidden">
         <Lejant kompakt />
+      </div>
+
+      {/* Asistan: masaüstünde haritanın sağ altı, telefonda çekmecenin üstü */}
+      <div className="pointer-events-none absolute bottom-[124px] right-3 z-[1100] md:bottom-6 md:right-[416px]">
+        <SohbetKutusu />
       </div>
 
       {/* Masaüstü yan panel */}
