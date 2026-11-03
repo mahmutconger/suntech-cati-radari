@@ -7,8 +7,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, Menu, Sun, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useMasaustu } from "@/hooks/useMasaustu";
 import { tanitimiGorulduSay } from "@/lib/tanitim";
 import { girisAdresi } from "@/lib/yonlendirme";
+import { SideRays } from "./SideRays";
 import { YatayOzellikSeridi } from "./YatayOzellikSeridi";
 
 /**
@@ -35,6 +37,9 @@ const IKINCIL_DUGME =
 
 export function TanitimEkrani({ sonra }: { sonra: string }) {
   const [mobilMenuAcik, setMobilMenuAcik] = useState(false);
+  const [isinlarCiziliyor, setIsinlarCiziliyor] = useState(false);
+  // Dar (dikey) ekranda kaynak parıltısı tek bir leke gibi kalıyor; telefonda parıltı ve yoğunluk düşük.
+  const telefon = useMasaustu() === false;
   const giris = girisAdresi(sonra);
   const kayit = girisAdresi(sonra, "kayit");
 
@@ -50,13 +55,43 @@ export function TanitimEkrani({ sonra }: { sonra: string }) {
   return (
     <>
       <div className="relative min-h-dvh overflow-hidden bg-zemin">
-        {/* Gren dokulu degrade arka plan */}
-        <div className="absolute -right-60 -top-10 z-0 flex flex-col items-end blur-xl">
+        {/* Gren dokulu degrade arka plan: WebGL2 olmayan tarayıcıda görünen yedek; ışınlar çizilince sönükleşir */}
+        <div
+          aria-hidden
+          className={`absolute -right-60 -top-10 z-0 flex flex-col items-end blur-xl transition-opacity duration-1000 ${
+            isinlarCiziliyor ? "opacity-0" : "opacity-100"
+          }`}
+        >
           <div className="z-1 h-[10rem] w-[60rem] rounded-full bg-gradient-to-b from-seftali to-mercan blur-[6rem]" />
           <div className="z-1 h-[10rem] w-[90rem] rounded-full bg-gradient-to-b from-limon to-seftali blur-[6rem]" />
           <div className="z-1 h-[10rem] w-[60rem] rounded-full bg-gradient-to-b from-limon to-limon/40 blur-[6rem]" />
         </div>
         <div className="bg-noise absolute inset-0 z-0 opacity-30" />
+
+        {/* Sağ üst köşeden yayılan, fareyi izleyen güneş ışınları (WebGL2; yoksa degrade kalır) */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
+          <SideRays
+            rayColor1="#FFC46B"
+            rayColor2="#96c8ff"
+            origin="top-right"
+            speed={3.2}
+            intensity={telefon ? 2.2 : 3.15}
+            spread={telefon ? 1.8 : 2.25}
+            density={8}
+            followMouse
+            blend={0}
+            sharpness={0.34}
+            tilt={10}
+            falloff={1.55}
+            glow={telefon ? 0.8 : 2.25}
+            saturation={1.9}
+            dust={0.35}
+            mouseInfluence={0.22}
+            opacity={0.91}
+            lightMode
+            onHazir={() => setIsinlarCiziliyor(true)}
+          />
+        </div>
 
         <div className="relative z-10">
           {/* Üst menü */}
@@ -210,4 +245,3 @@ export function TanitimEkrani({ sonra }: { sonra: string }) {
     </>
   );
 }
-
