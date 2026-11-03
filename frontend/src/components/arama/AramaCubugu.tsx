@@ -5,6 +5,7 @@
 
 import { useMemo, useState } from "react";
 import { useBinalar } from "@/hooks/veri";
+import { binaAdi } from "@/components/ortak/Deger";
 import { alan } from "@/lib/bicim";
 import { useHaritaDurumu } from "@/store/harita";
 
@@ -64,7 +65,7 @@ export function AramaCubugu() {
                   onClick={() => sec(b.id)}
                   className="flex w-full items-center justify-between px-4 py-2.5 text-left text-slate-100 hover:bg-white/10"
                 >
-                  <span>{b.ad ?? `Bina #${b.id}`}</span>
+                  <span>{binaAdi(b)}</span>
                   <span className="text-xs text-slate-400">{alan(b.alan_m2)}</span>
                 </button>
               </li>

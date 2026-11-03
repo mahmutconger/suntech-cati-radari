@@ -5,10 +5,69 @@
 export type Konum = [lon: number, lat: number];
 
 export interface BinaOzet {
+  /** OSM kimliği */
   id: number;
-  ad: string | null;
+  /** Adı olmayan binada boş metin */
+  ad: string;
   alan_m2: number;
   merkez: Konum;
+}
+
+export interface EnYakinTrafo {
+  id: number;
+  ad: string;
+  gerilim_kv: number | null;
+  mesafe_km: number;
+}
+
+/** GET /binalar/{id} */
+export interface BinaDetay extends BinaOzet {
+  verim_kwh_kwp: number | null;
+  mevcut_ges: boolean;
+  pvgis_id: string | null;
+  geometri: CokgenGeometri;
+  en_yakin_trafo: EnYakinTrafo | null;
+}
+
+/** Firmanın girdiği tüketim. Saatlik profil (vardiya) Mehmet'in simülasyonunda. */
+export interface Tuketim {
+  yillik_kwh: number;
+}
+
+/** POST /hesap/bina/{id} gövdesi */
+export interface BinaHesapIstegi {
+  varsayimlar: Varsayimlar;
+  tuketim: Tuketim | null;
+}
+
+/** POST /sohbet */
+export interface SohbetIstegi {
+  mesaj: string;
+  gecmis: { rol: "kullanici" | "asistan"; metin: string }[];
+}
+
+export interface KullanilanArac {
+  ad: string;
+  girdi?: Record<string, unknown>;
+}
+
+export interface SohbetYaniti {
+  cevap: string;
+  araclar: KullanilanArac[];
+}
+
+/** /kayitlar */
+export interface KayitIstegi {
+  bina_id: number;
+  varsayimlar: Varsayimlar;
+  tuketim: Tuketim | null;
+  sonuc: HesapSonucu;
+}
+
+export interface Kayit extends KayitIstegi {
+  id: string;
+  bina_ad?: string;
+  olusturma: string;
 }
 
 export interface Varsayimlar {

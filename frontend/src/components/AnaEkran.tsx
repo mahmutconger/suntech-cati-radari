@@ -8,10 +8,13 @@ import { KatmanSecici, Lejant } from "@/components/harita/HaritaKontrolleri";
 import { HaritaYukleyici } from "@/components/harita/HaritaYukleyici";
 import { AltCekmece } from "@/components/panel/AltCekmece";
 import { PanelIcerigi } from "@/components/panel/PanelIcerigi";
+import { useMasaustu } from "@/hooks/useMasaustu";
 import { useHaritaDurumu } from "@/store/harita";
 
 export function AnaEkran() {
   const seciliId = useHaritaDurumu((d) => d.seciliBinaId);
+  // Panel içeriği tek yerde render edilir: masaüstünde yan panel, telefonda çekmece.
+  const masaustu = useMasaustu();
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-slate-950">
@@ -45,12 +48,12 @@ export function AnaEkran() {
 
       {/* Masaüstü yan panel */}
       <aside className="absolute inset-y-0 right-0 z-[1000] hidden w-[400px] overflow-y-auto border-l border-white/10 bg-slate-950/95 p-5 backdrop-blur md:block">
-        <PanelIcerigi />
+        {masaustu && <PanelIcerigi />}
       </aside>
 
       {/* Telefon alt çekmece */}
       <AltCekmece baslik={seciliId !== null ? "Çatı bilgisi" : "OSB özeti ve ilk 20 çatı"}>
-        <PanelIcerigi />
+        {masaustu === false && <PanelIcerigi />}
       </AltCekmece>
     </main>
   );
