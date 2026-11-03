@@ -358,6 +358,10 @@ BinaDetay    BinaOzet + { verim_kwh_kwp, mevcut_ges, pvgis_id, geometri: GeoJSON
 SohbetIstegi { mesajlar: [{ rol: "kullanici" | "asistan", metin }] (en çok 20, son 10'u kullanılır,
                sonuncusu kullanıcının, metin ≤ 2000), bina_id?: açık kartın id'si }
 SohbetYaniti { cevap, araclar: [{ ad, girdi }], model }   // geçmişi istemci tutar; 429 hız sınırı, 503 asistan meşgul
+KayitIstegi  { bina_id, varsayimlar: Varsayimlar, tuketim: { yillik_kwh } | null, sonuc: HesapSonucu }
+Kayit        KayitIstegi + { id, bina_ad, olusturma }   // GET yeniden eskiye, POST 201, DELETE 204;
+               kullanıcı başına en çok 100 (409 kayit_siniri); başkasının kaydı 404 görünür
+AuthBen      { uid, email, email_dogrulandi }   // token yok ya da geçersizse 401 giris_gerekli / gecersiz_token
 TrafoOzelligi GeoJSON Point, properties { id, ad, isletmeci, gerilim_kv, kalan_kapasite_mw, kaynak }
 HesapSonucu  { bina_id, kwp, uretim_mwh, tasarruf_tl, yatirim_tl,
                geri_odeme_yil, co2_ton }
