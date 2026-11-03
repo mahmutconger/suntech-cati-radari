@@ -16,6 +16,7 @@ class SohbetIstegi(BaseModel):
     mesajlar: list[Mesaj] = Field(min_length=1, max_length=20)
     bina_id: int | None = None
     varsayimlar: VarsayimlarDto | None = None  # kaydırıcı değerleri; yoksa varsayılanlar
+    osb: str | None = Field(None, pattern=r"^[a-z0-9_-]{1,40}$")  # haritada açık olan OSB; yoksa manisa
 
     @field_validator("mesajlar")
     @classmethod

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import zlib
 from datetime import datetime, timezone
+from functools import lru_cache
 
 from google.genai import types
 
@@ -56,6 +57,39 @@ def _sahte(bina_id: int) -> dict:
             "aciklama": "Sahte mod, Gemini'ye istek gönderilmedi.", "model": "sahte"}
 
 
+@lru_cache(maxsize=64)  # ponytail: süreç içi, ~150 KB x 64; rapor sayfası aynı çatıyı birkaç kez ister
+def _goruntu_onbellekli(bina_id: int) -> bytes:
+    bina = HesapDeposu().getir(bina_id)
+    return cati_goruntusu(bina["geom"])[0]
+
+
+def goruntu(bina_id: int) -> Sonuc[bytes]:
+    if HesapDeposu().getir(bina_id) is None:
+        return Sonuc.hatali("bina_yok", "Bina bulunamadı")
+    try:
+        return Sonuc.tamam(_goruntu_onbellekli(bina_id))
+    except Exception:
+        return Sonuc.hatali("goruntu_yok", "Uydu görüntüsü alınamadı, biraz sonra tekrar deneyin.")
+
+
+def onbellekteki(bina_id: int) -> Sonuc[dict]:
+    """Daha önce yapılmış tespit; Gemini'ye gitmez."""
+    if HesapDeposu().getir(bina_id) is None:
+        return Sonuc.hatali("bina_yok", "Bina bulunamadı")
+    anlik = _koleksiyon().document(str(bina_id)).get()
+    if not anlik.exists:
+        return Sonuc.hatali("sonuc_yok", "Bu çatı için uydu kontrolü henüz yapılmadı")
+    return Sonuc.tamam(_disari(bina_id, anlik.to_dict(), onbellekten=True))
+
+
+def _mevcut_ges_isaretle(bina_id: int) -> None:
+    """Uydu panel görürse bina "mevcut GES" sayılır; skor ve harita bunu kullanır."""
+    get_firestore_client().collection("binalar").document(str(bina_id)).update({"mevcut_ges": True, "mevcut_ges_kaynak": "uydu"})
+    bina = HesapDeposu().getir(bina_id)
+    if bina is not None:
+        bina["mevcut_ges"] = True  # süreç içi önbellek de güncel kalsın
+
+
 def tespit_et(bina_id: int) -> Sonuc[dict]:
     bina = HesapDeposu().getir(bina_id)
     if bina is None:
@@ -97,4 +131,6 @@ def tespit_et(bina_id: int) -> Sonuc[dict]:
 
     v |= {"model": model, "zoom": zoom, "olusturma": datetime.now(timezone.utc)}
     belge.set(v)
+    if v["panel"] == "var":
+        _mevcut_ges_isaretle(bina_id)
     return Sonuc.tamam(_disari(bina_id, v, onbellekten=False))

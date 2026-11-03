@@ -20,16 +20,26 @@ def _koleksiyon(ad: str) -> list[dict]:
     return _onbellek[ad]
 
 
-def binalar() -> list[dict]:
-    return _koleksiyon("binalar")
+VARSAYILAN_OSB = "manisa"
 
 
-def trafolar() -> list[dict]:
-    return _koleksiyon("trafo_merkezleri")
+def osblar() -> list[dict]:
+    return _koleksiyon("osblar")
+
+
+def binalar(osb: str | None = None) -> list[dict]:
+    """osb verilmezse bütün OSB'ler; osb alanı olmayan eski kayıt Manisa sayılır."""
+    hepsi = _koleksiyon("binalar")
+    return hepsi if osb is None else [b for b in hepsi if b.get("osb", VARSAYILAN_OSB) == osb]
+
+
+def trafolar(osb: str | None = None) -> list[dict]:
+    hepsi = _koleksiyon("trafo_merkezleri")
+    return hepsi if osb is None else [t for t in hepsi if osb in t.get("osblar", [VARSAYILAN_OSB])]
 
 
 class HesapDeposu:
-    """Mehmet'in hesap use case'lerinin beklediği BinaDeposu; aynı önbelleği kullanır."""
+    """Mehmet'in hesap use case'lerinin beklediği BinaDeposu; aynı önbelleği kullanır. OSB süzgeci use case'te."""
 
     def hepsi(self) -> list[dict]:
         return binalar()
