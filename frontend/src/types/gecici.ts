@@ -40,20 +40,29 @@ export interface BinaHesapIstegi {
   yillik_tuketim_kwh: number | null;
 }
 
-/** POST /sohbet */
+/** POST /sohbet (Nazım'ın SohbetIstegi şeması) */
+export interface SohbetMesaji {
+  rol: "kullanici" | "asistan";
+  /** 1-2000 karakter */
+  metin: string;
+}
+
 export interface SohbetIstegi {
-  mesaj: string;
-  gecmis: { rol: "kullanici" | "asistan"; metin: string }[];
+  /** En çok 20 mesaj; sonuncusu kullanıcının olmalı */
+  mesajlar: SohbetMesaji[];
+  bina_id: number | null;
 }
 
 export interface KullanilanArac {
   ad: string;
-  girdi?: Record<string, unknown>;
+  girdi: Record<string, unknown>;
 }
 
 export interface SohbetYaniti {
   cevap: string;
   araclar: KullanilanArac[];
+  /** Cevabı üreten Gemini modeli */
+  model: string;
 }
 
 /** /kayitlar */

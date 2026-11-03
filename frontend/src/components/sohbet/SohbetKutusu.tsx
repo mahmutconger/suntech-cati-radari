@@ -12,8 +12,13 @@ interface Mesaj {
   rol: "kullanici" | "asistan";
   metin: string;
   araclar?: KullanilanArac[];
+  model?: string;
   hata?: boolean;
 }
+
+/** Backend sınırları: en çok 20 mesaj, her biri en çok 2000 karakter. */
+const EN_COK_MESAJ = 20;
+const EN_COK_KARAKTER = 2000;
 
 const ORNEK_SORULAR = [
   "Geri ödemesi 4 yılın altında kaç çatı var?",
@@ -30,11 +35,9 @@ const ARAC_ADLARI: Record<string, string> = {
 };
 
 function AracEtiketi({ arac }: { arac: KullanilanArac }) {
-  const girdi = arac.girdi
-    ? Object.entries(arac.girdi)
-        .map(([k, v]) => `${k}=${String(v)}`)
-        .join(", ")
-    : "";
+  const girdi = Object.entries(arac.girdi ?? {})
+    .map(([k, v]) => `${k}=${String(v)}`)
+    .join(", ");
   return (
     <span
       title={girdi || undefined}
@@ -61,15 +64,19 @@ export function SohbetKutusu() {
   function gonder(soru: string) {
     const temiz = soru.trim();
     if (!temiz || sohbet.isPending) return;
-    // Seçili bina varsa asistana bağlam olarak eklenir; asistan bina_detayi aracıyla okur.
-    const mesaj = seciliId !== null ? `${temiz}\n\n(Seçili bina: ${seciliId})` : temiz;
-    const gecmis = mesajlar.filter((m) => !m.hata).map(({ rol, metin }) => ({ rol, metin }));
+    // Hata mesajları geçmişe girmez; son 20 mesaj gider ve sonuncusu kullanıcının sorusudur.
+    // Seçili bina varsa bina_id ile gönderilir, asistan bina_detayi aracıyla okur.
+    const mesajlarIstek = [
+      ...mesajlar.filter((m) => !m.hata).map(({ rol, metin }) => ({ rol, metin: metin.slice(0, EN_COK_KARAKTER) })),
+      { rol: "kullanici" as const, metin: temiz },
+    ].slice(-EN_COK_MESAJ);
     setMesajlar((m) => [...m, { rol: "kullanici", metin: temiz }]);
     setMetin("");
     sohbet.mutate(
-      { mesaj, gecmis },
+      { mesajlar: mesajlarIstek, bina_id: seciliId },
       {
-        onSuccess: (y) => setMesajlar((m) => [...m, { rol: "asistan", metin: y.cevap, araclar: y.araclar }]),
+        onSuccess: (y) =>
+          setMesajlar((m) => [...m, { rol: "asistan", metin: y.cevap, araclar: y.araclar, model: y.model }]),
         onError: (e) => setMesajlar((m) => [...m, { rol: "asistan", metin: e.message, hata: true }]),
       },
     );
@@ -146,6 +153,7 @@ export function SohbetKutusu() {
                 ))}
               </div>
             )}
+            {m.model && <p className="text-[10px] text-slate-600">Model: {m.model}</p>}
           </div>
         ))}
         {sohbet.isPending && <p className="text-xs text-slate-400">Asistan tabloyu okuyor…</p>}

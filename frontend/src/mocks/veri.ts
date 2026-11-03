@@ -162,13 +162,14 @@ export function sahteBinaHesap(id: number, v: Varsayimlar, tuketim: Tuketim | nu
 /** Asistan taklidi: gerçek asistan Gemini ile araç çağırır; burada aynı biçimde sabit cevap döner. */
 export function sahteSohbet(istek: SohbetIstegi, v: Varsayimlar): SohbetYaniti {
   const { sonuclar, ozet } = sahteTopluHesap(v);
-  const soru = istek.mesaj.toLocaleLowerCase("tr-TR");
+  const soru = (istek.mesajlar.at(-1)?.metin ?? "").toLocaleLowerCase("tr-TR");
   if (soru.includes("geri ödeme") || soru.includes("geri odeme")) {
     const sinir = Number(soru.match(/(\d+)\s*yıl/)?.[1] ?? 4);
     const adet = sonuclar.filter((s) => s.geri_odeme_yil < sinir).length;
     return {
       cevap: `Geri ödemesi ${sinir} yılın altında ${adet} çatı var (toplam ${ozet.bina_sayisi} çatı içinde). Sayılar hesap motorundan geldi.`,
       araclar: [{ ad: "sirala", girdi: { olcut: "geri_odeme_yil", adet: ozet.bina_sayisi } }],
+      model: "sahte",
     };
   }
   const enIyi = [...sonuclar].sort((a, b) => b.tasarruf_tl - a.tasarruf_tl)[0];
@@ -178,7 +179,8 @@ export function sahteSohbet(istek: SohbetIstegi, v: Varsayimlar): SohbetYaniti {
       `En çok kazandıracak çatı #${enIyi.bina_id}: yılda yaklaşık ${(enIyi.tasarruf_tl / 1e6).toFixed(1)} milyon TL tasarruf, ` +
       `${enIyi.geri_odeme_yil.toFixed(1)} yıl geri ödeme.\n\n` +
       "Bu bir ön taramadır. Çatı statiği, mevcut tesisat ve şebeke bağlantısı için yerinde keşif gerekir.",
-    araclar: [{ ad: "osb_ozeti" }, { ad: "sirala", girdi: { olcut: "tasarruf_tl", adet: 1 } }],
+    araclar: [{ ad: "osb_ozeti", girdi: {} }, { ad: "sirala", girdi: { olcut: "tasarruf_tl", adet: 1 } }],
+    model: "sahte",
   };
 }
 
