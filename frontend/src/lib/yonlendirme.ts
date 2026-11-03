@@ -1,8 +1,12 @@
 // Giriş ve tanıtım ekranlarının "?sonra=" parametresi için ortak yardımcılar.
 
-/** Yalnızca site içi yollara dönülür (açık yönlendirme olmasın). */
+/**
+ * Yalnızca site içi yollara dönülür (açık yönlendirme olmasın). "//site" ve "/\\site" reddedilir:
+ * tarayıcılar ters eğik çizgiyi düz çizgi sayar, ikisi de başka siteye gider.
+ */
 export function guvenliYol(yol: string | null | undefined): string {
-  return yol && yol.startsWith("/") && !yol.startsWith("//") ? yol : "/";
+  if (!yol || !yol.startsWith("/") || yol.startsWith("//") || yol.startsWith("/\\")) return "/";
+  return yol;
 }
 
 /** Giriş ekranının adresi; mod verilirse ekran o modda açılır. */
