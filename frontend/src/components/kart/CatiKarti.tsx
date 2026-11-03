@@ -3,7 +3,8 @@
 // Çatı kartı: seçili binanın hesabı. Rakamlar her zaman hesap motorundan (/hesap/bina) gelir.
 
 import Link from "next/link";
-import { binaAdi, Deger } from "@/components/ortak/Deger";
+import { FinansOzeti } from "@/components/kart/FinansOzeti";
+import { binaAdi, Deger, SkorRozeti } from "@/components/ortak/Deger";
 import { TuketimKutusu } from "@/components/kart/TuketimKutusu";
 import { UyduKontrolu } from "@/components/kart/UyduKontrolu";
 import { SimulasyonPaneli } from "@/components/simulasyon";
@@ -75,7 +76,10 @@ export function CatiKarti({ binaId }: { binaId: number }) {
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs text-slate-400">OSM #{bina.id}</p>
-          <h2 className="truncate text-lg font-semibold text-slate-50">{binaAdi(bina)}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="truncate text-lg font-semibold text-slate-50">{binaAdi(bina)}</h2>
+            {typeof hesap?.uygunluk_skoru === "number" && <SkorRozeti skor={hesap.uygunluk_skoru} />}
+          </div>
           <div className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
             {detay?.verim_kwh_kwp && (
               <span className="rounded-full bg-white/5 px-2 py-0.5 text-slate-300">
@@ -116,6 +120,8 @@ export function CatiKarti({ binaId }: { binaId: number }) {
         </div>
       )}
 
+      {hesap && <FinansOzeti hesap={hesap} />}
+
       {tuketimeGoreKucuk && (
         <p className="text-[11px] text-amber-200/90">
           Sistem tüketiminize göre küçültüldü; çatının tamamı kullanılmıyor.
@@ -134,11 +140,22 @@ export function CatiKarti({ binaId }: { binaId: number }) {
         yillikTuketimKwh={tuketim?.yillik_kwh ?? null}
       />
 
-      <KaydetDugmesi key={`kaydet-${binaId}`} binaId={binaId} />
+      <div className="grid gap-2">
+        <KaydetDugmesi key={`kaydet-${binaId}`} binaId={binaId} />
+        <Link
+          href={`/rapor/${binaId}`}
+          className="block rounded-xl border border-white/15 px-4 py-2.5 text-center text-sm font-semibold text-slate-100 hover:bg-white/5"
+        >
+          📄 Ön fizibilite raporu (PDF)
+        </Link>
+      </div>
 
       <p className="text-[11px] leading-relaxed text-slate-400">
-        İlk kaba hesap. Basit geri ödeme; enflasyon, tarife artışı ve bakım dahil değil. Çatı statiği, mevcut tesisat
-        ve şebeke bağlantısı için yerinde keşif gerekir.
+        İlk kaba hesap. Geri ödeme basit (ilk yıl tasarrufuyla)
+        {typeof hesap?.nbd_tl === "number"
+          ? "; uzun dönem değerler bakım ve verim kaybını içerir."
+          : "; enflasyon, tarife artışı ve bakım dahil değil."}{" "}
+        Çatı statiği, mevcut tesisat ve şebeke bağlantısı için yerinde keşif gerekir.
       </p>
     </section>
   );

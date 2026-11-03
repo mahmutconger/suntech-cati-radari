@@ -32,3 +32,22 @@ body {
     bottom: 72px;
   }
 }
+
+/* Rapor (/rapor/[binaId]) yazdırma ayarları: A4, beyaz zemin, düğmeler gizli. */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  body {
+    background: #fff !important;
+    color: #0f172a !important;
+  }
+  .yazdirma-gizle {
+    display: none !important;
+  }
+  .rapor-sayfasi {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
