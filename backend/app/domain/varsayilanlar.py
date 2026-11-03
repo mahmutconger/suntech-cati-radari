@@ -1,4 +1,4 @@
-"""Hesap motoru varsayılan değerleri, aralıkları, kaynakları ve tarihleri (PROJE.md Bölüm 16)."""
+"""Hesap motoru varsayılan değerleri, aralıkları, kaynakları ve tarihleri (PROJE.md Bölüm 16 ve 22.1)."""
 
 from __future__ import annotations
 
@@ -33,6 +33,13 @@ VARSAYILAN_OZ_TUKETIM_ORANI: float = 0.80
 VARSAYILAN_MALIYET_CARPANI: float = 1.0
 VARSAYILAN_EMISYON_FAKTORU: float = 0.6242  # tCO2 / MWh
 VARSAYILAN_VERIM_KWH_KWP: float = 1340.0
+
+# 25 yıllık finans varsayılanları (PROJE.md §22.1)
+VARSAYILAN_OMUR_YIL: int = 25
+VARSAYILAN_DEGRADASYON: float = 0.005      # Yıllık %0,5 panel yaşlanması
+VARSAYILAN_BAKIM_ORANI: float = 0.01       # Yatırımın yıllık %1'i O&M gideri
+VARSAYILAN_ISKONTO_ORANI: float = 0.08     # Reel %8 iskonto oranı
+VARSAYILAN_TARIFE_ARTISI: float = 0.0      # Reel %0 elektrik fiyatı artışı
 
 # Kurulum maliyeti kademeleri (KDV hariç, TL/kWp)
 MALIYET_KADEME_KUCUK_SINIR_KWP: float = 250.0
@@ -72,6 +79,11 @@ def varsayilan_varsayimlar() -> Varsayimlar:
         oz_tuketim_orani=VARSAYILAN_OZ_TUKETIM_ORANI,
         maliyet_carpani=VARSAYILAN_MALIYET_CARPANI,
         emisyon_faktoru=VARSAYILAN_EMISYON_FAKTORU,
+        omur_yil=VARSAYILAN_OMUR_YIL,
+        degradasyon=VARSAYILAN_DEGRADASYON,
+        bakim_orani=VARSAYILAN_BAKIM_ORANI,
+        iskonto_orani=VARSAYILAN_ISKONTO_ORANI,
+        tarife_artisi=VARSAYILAN_TARIFE_ARTISI,
     )
 
 
@@ -205,6 +217,71 @@ VARSAYIM_KAYNAKLARI: tuple[VarsayimKaynagi, ...] = (
         kaynak="ETKB, 2023 Türkiye Ulusal Elektrik Şebekesi Emisyon Faktörü Bilgi Formu, güneş ve rüzgâr için birleşik marj",
         tarih="2023 verisi, 31 Aralık 2025'te duyuruldu",
         aciklama="1 MWh güneş enerjisi üretimiyle önlenen sera gazı emisyonu.",
+    ),
+    VarsayimKaynagi(
+        anahtar="omur_yil",
+        ad="Ekonomik ömür",
+        deger="25 yıl",
+        sayisal_deger=float(VARSAYILAN_OMUR_YIL),
+        birim="yıl",
+        aralik="15-30 yıl",
+        min_deger=15.0,
+        max_deger=30.0,
+        kaynak="IEC 61215 / Tier-1 fotovoltaik modül doğrusal performans garantisi standardı",
+        tarih="2026",
+        aciklama="NBD, İVO, LCOE ve 25 yıllık nakit akışı analizinde kullanılan sistem ömrü.",
+    ),
+    VarsayimKaynagi(
+        anahtar="degradasyon",
+        ad="Yıllık panel yaşlanması (degradasyon)",
+        deger="%0,5 / yıl",
+        sayisal_deger=VARSAYILAN_DEGRADASYON,
+        birim="oran/yıl",
+        aralik="%0,2-1,0",
+        min_deger=0.002,
+        max_deger=0.01,
+        kaynak="NREL Photovoltaic Degradation Rates incelemesi ve моно-PERC/TOPCon modül katalogları",
+        tarih="2026",
+        aciklama="Modül üretiminin her yıl bir önceki yıla göre azalma oranı.",
+    ),
+    VarsayimKaynagi(
+        anahtar="bakim_orani",
+        ad="Yıllık işletme ve bakım (O&M) gideri",
+        deger="Yatırımın %1,0'i / yıl",
+        sayisal_deger=VARSAYILAN_BAKIM_ORANI,
+        birim="oran/yıl",
+        aralik="%0,5-2,5",
+        min_deger=0.005,
+        max_deger=0.025,
+        kaynak="IRENA Renewable Power Generation Costs & Türkiye sanayi çatı GES temizlik/izleme/sigorta ortalaması",
+        tarih="2025-2026",
+        aciklama="Temizlik, inverter kontrolü, izleme ve sigorta için yıllık sabit gider oranı.",
+    ),
+    VarsayimKaynagi(
+        anahtar="iskonto_orani",
+        ad="Reel iskonto oranı",
+        deger="%8,0 (reel)",
+        sayisal_deger=VARSAYILAN_ISKONTO_ORANI,
+        birim="oran",
+        aralik="%4-15",
+        min_deger=0.04,
+        max_deger=0.15,
+        kaynak="SHURA / Dünya Bankası Türkiye dağıtık güneş enerjisi reel sermaye maliyeti (WACC) referansı",
+        tarih="2025-2026",
+        aciklama="Sabit fiyatlarla (enflasyondan arındırılmış) NBD ve LCOE hesabında kullanılan reel iskonto oranı.",
+    ),
+    VarsayimKaynagi(
+        anahtar="tarife_artisi",
+        ad="Reel elektrik tarifesi artışı",
+        deger="%0,0 (reel sabit)",
+        sayisal_deger=VARSAYILAN_TARIFE_ARTISI,
+        birim="oran/yıl",
+        aralik="-%2 ile +%5",
+        min_deger=-0.02,
+        max_deger=0.05,
+        kaynak="Muhafazakâr baz senaryo: elektrik fiyatının genel enflasyonla paralel hareket ettiği kabulü",
+        tarih="2026",
+        aciklama="Enflasyon üzerindeki yıllık reel elektrik tarifesi değişim oranı.",
     ),
     VarsayimKaynagi(
         anahtar="statik_ek_yuk",

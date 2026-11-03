@@ -2,6 +2,7 @@
 
 from app.domain.varliklar import (
     Bina,
+    FinansOzeti,
     HesapSonucu,
     KrediGirdisi,
     KrediSonucu,
@@ -15,6 +16,7 @@ from app.domain.varliklar import (
     StatikSonucu,
     VardiyaTipi,
     Varsayimlar,
+    YillikNakitAkisi,
 )
 from app.domain.varsayilanlar import (
     VARSAYIM_KAYNAKLARI,
@@ -25,6 +27,7 @@ from app.domain.varsayilanlar import (
 __all__ = [
     "VARSAYIM_KAYNAKLARI",
     "Bina",
+    "FinansOzeti",
     "HesapSonucu",
     "KrediGirdisi",
     "KrediSonucu",
@@ -39,5 +42,6 @@ __all__ = [
     "VardiyaTipi",
     "VarsayimKaynagi",
     "Varsayimlar",
+    "YillikNakitAkisi",
     "varsayilan_varsayimlar",
 ]

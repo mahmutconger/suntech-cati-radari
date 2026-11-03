@@ -1,12 +1,15 @@
 export {
+  SimulasyonPaneli,
+  YirmiBesYillikGrafik,
   type KrediSonucu,
   type PilSonucu,
   type SaatlikGunProfili,
   type SebekeSonucu,
-  SimulasyonPaneli,
+  type SimulasyonIstegi,
   type SimulasyonPaneliProps,
   type SimulasyonSonucu,
   type StatikSonucu,
   type VardiyaTipi,
+  type YillikNakitAkisiSatiri,
+  type YirmiBesYillikGrafikProps,
 } from "./SimulasyonPaneli";
-export { default } from "./SimulasyonPaneli";

@@ -1,4 +1,4 @@
-"""Hesap dilimi Pydantic v2 DTO şemaları ve aralık doğrulamaları (PROJE.md Bölüm 9 ve 11)."""
+"""Hesap dilimi Pydantic v2 DTO şemaları ve aralık doğrulamaları (PROJE.md Bölüm 9, 11 ve 22.1)."""
 
 from __future__ import annotations
 
@@ -20,26 +20,32 @@ from app.domain.varliklar import (
     StatikSonucu as DomainStatikSonucu,
     VardiyaTipi,
     Varsayimlar as DomainVarsayimlar,
+    YillikNakitAkisi as DomainYillikNakitAkisi,
 )
 from app.domain.varsayilanlar import (
+    VARSAYILAN_BAKIM_ORANI,
+    VARSAYILAN_DEGRADASYON,
     VARSAYILAN_EMISYON_FAKTORU,
     VARSAYILAN_FAZLA_FIYAT_TL_KWH,
+    VARSAYILAN_ISKONTO_ORANI,
     VARSAYILAN_KREDI_AYLIK_FAIZ,
     VARSAYILAN_KREDI_PESINAT_ORANI,
     VARSAYILAN_KREDI_VADE_AY,
     VARSAYILAN_KULLANILABILIR_ORAN,
     VARSAYILAN_M2_KWP,
     VARSAYILAN_MALIYET_CARPANI,
+    VARSAYILAN_OMUR_YIL,
     VARSAYILAN_OZ_TUKETIM_ORANI,
     VARSAYILAN_PIL_BIRIM_MALIYET_TL_KWH,
     VARSAYILAN_PIL_VERIMI,
+    VARSAYILAN_TARIFE_ARTISI,
     VARSAYILAN_TARIFE_TL_KWH,
     VarsayimKaynagi as DomainVarsayimKaynagi,
 )
 
 
 class VarsayimlarDto(BaseModel):
-    """Kaydırıcılarla değiştirilebilen hesap varsayımları DTO'su."""
+    """Kaydırıcılarla değiştirilebilen hesap varsayımları DTO'su (PROJE.md §16 ve §22.1)."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -85,6 +91,36 @@ class VarsayimlarDto(BaseModel):
         le=2.0,
         description="Şebeke emisyon faktörü (tCO2/MWh)",
     )
+    omur_yil: int = Field(
+        default=VARSAYILAN_OMUR_YIL,
+        ge=5,
+        le=40,
+        description="Sistem ekonomik ömrü (yıl, varsayılan 25)",
+    )
+    degradasyon: float = Field(
+        default=VARSAYILAN_DEGRADASYON,
+        ge=0.0,
+        le=0.05,
+        description="Yıllık panel verim kaybı / degradasyon oranı (varsayılan 0,005 = %0,5)",
+    )
+    bakim_orani: float = Field(
+        default=VARSAYILAN_BAKIM_ORANI,
+        ge=0.0,
+        le=0.10,
+        description="Yatırımın yüzdesi olarak yıllık işletme-bakım gideri (varsayılan 0,01 = %1)",
+    )
+    iskonto_orani: float = Field(
+        default=VARSAYILAN_ISKONTO_ORANI,
+        ge=0.0,
+        le=0.50,
+        description="Reel iskonto oranı (varsayılan 0,08 = %8)",
+    )
+    tarife_artisi: float = Field(
+        default=VARSAYILAN_TARIFE_ARTISI,
+        ge=-0.20,
+        le=0.50,
+        description="Yıllık reel elektrik tarifesi artışı (varsayılan 0,0 = %0)",
+    )
 
     def to_domain(self) -> DomainVarsayimlar:
         return DomainVarsayimlar(
@@ -95,6 +131,11 @@ class VarsayimlarDto(BaseModel):
             oz_tuketim_orani=self.oz_tuketim_orani,
             maliyet_carpani=self.maliyet_carpani,
             emisyon_faktoru=self.emisyon_faktoru,
+            omur_yil=self.omur_yil,
+            degradasyon=self.degradasyon,
+            bakim_orani=self.bakim_orani,
+            iskonto_orani=self.iskonto_orani,
+            tarife_artisi=self.tarife_artisi,
         )
 
     @classmethod
@@ -107,11 +148,16 @@ class VarsayimlarDto(BaseModel):
             oz_tuketim_orani=v.oz_tuketim_orani,
             maliyet_carpani=v.maliyet_carpani,
             emisyon_faktoru=v.emisyon_faktoru,
+            omur_yil=v.omur_yil,
+            degradasyon=v.degradasyon,
+            bakim_orani=v.bakim_orani,
+            iskonto_orani=v.iskonto_orani,
+            tarife_artisi=v.tarife_artisi,
         )
 
 
 class HesapSonucuDto(BaseModel):
-    """Tek bina yıllık hesap sonucu DTO'su (PROJE.md Bölüm 9)."""
+    """Tek bina yıllık hesap, 25Y finans ve uygunluk skoru DTO'su (PROJE.md §9 ve §22.1)."""
 
     bina_id: int
     kwp: float
@@ -120,6 +166,11 @@ class HesapSonucuDto(BaseModel):
     yatirim_tl: float
     geri_odeme_yil: float
     co2_ton: float
+    nbd_tl: float = 0.0
+    ic_verim_orani: float = 0.0
+    net_kazanc_25y_tl: float = 0.0
+    lcoe_tl_kwh: float = 0.0
+    uygunluk_skoru: float = 0.0
 
     @classmethod
     def from_domain(cls, s: DomainHesapSonucu) -> HesapSonucuDto:
@@ -131,11 +182,16 @@ class HesapSonucuDto(BaseModel):
             yatirim_tl=round(s.yatirim_tl, 2),
             geri_odeme_yil=round(s.geri_odeme_yil, 2),
             co2_ton=round(s.co2_ton, 2),
+            nbd_tl=round(s.nbd_tl, 2),
+            ic_verim_orani=round(s.ic_verim_orani, 4),
+            net_kazanc_25y_tl=round(s.net_kazanc_25y_tl, 2),
+            lcoe_tl_kwh=round(s.lcoe_tl_kwh, 2),
+            uygunluk_skoru=round(s.uygunluk_skoru, 1),
         )
 
 
 class OsbOzetiDto(BaseModel):
-    """OSB toplam özet DTO'su (PROJE.md Bölüm 9)."""
+    """OSB toplam özet DTO'su (PROJE.md §9 ve §22.1)."""
 
     bina_sayisi: int
     toplam_mwp: float
@@ -143,6 +199,8 @@ class OsbOzetiDto(BaseModel):
     toplam_tasarruf_tl: float
     toplam_yatirim_tl: float
     toplam_co2_ton: float
+    toplam_nbd_tl: float = 0.0
+    ortalama_skor: float = 0.0
 
     @classmethod
     def from_domain(cls, o: DomainOsbOzeti) -> OsbOzetiDto:
@@ -153,15 +211,21 @@ class OsbOzetiDto(BaseModel):
             toplam_tasarruf_tl=round(o.toplam_tasarruf_tl, 2),
             toplam_yatirim_tl=round(o.toplam_yatirim_tl, 2),
             toplam_co2_ton=round(o.toplam_co2_ton, 2),
+            toplam_nbd_tl=round(o.toplam_nbd_tl, 2),
+            ortalama_skor=round(o.ortalama_skor, 1),
         )
 
 
 class TopluHesapIstegi(BaseModel):
-    """POST `/hesap/toplu` istek gövdesi."""
+    """POST `/hesap/toplu` istek gövdesi (PROJE.md §22.1: `osb` alanı dahil)."""
 
     model_config = ConfigDict(extra="forbid")
 
     varsayimlar: VarsayimlarDto = Field(default_factory=VarsayimlarDto)
+    osb: str = Field(
+        default="manisa",
+        description="Hesaplanacak OSB kimliği (varsayılan 'manisa')",
+    )
 
 
 class TopluHesapYaniti(BaseModel):
@@ -173,7 +237,7 @@ class TopluHesapYaniti(BaseModel):
 
 
 class BinaHesapIstegi(BaseModel):
-    """POST `/hesap/bina/{id}` istek gövdesi."""
+    """POST `/hesap/bina/{id}` ve `/hesap/finans/{id}` istek gövdesi."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -184,6 +248,31 @@ class BinaHesapIstegi(BaseModel):
         le=500_000_000.0,
         description="Firmanın yıllık elektrik tüketimi (kWh/yıl)",
     )
+
+
+class YillikNakitAkisiDto(BaseModel):
+    """POST `/hesap/finans/{bina_id}` yanıtındaki tek bir yılın nakit akışı satırı (PROJE.md §22.1)."""
+
+    yil: int
+    uretim_mwh: float
+    tasarruf_tl: float
+    bakim_tl: float
+    net_akis_tl: float
+    kumulatif_tl: float
+
+    @classmethod
+    def from_domain(cls, y: DomainYillikNakitAkisi) -> YillikNakitAkisiDto:
+        return cls(
+            yil=y.yil,
+            uretim_mwh=round(y.uretim_mwh, 2),
+            tasarruf_tl=round(y.tasarruf_tl, 2),
+            bakim_tl=round(y.bakim_tl, 2),
+            net_akis_tl=round(y.net_akis_tl, 2),
+            kumulatif_tl=round(y.kumulatif_tl, 2),
+        )
+
+
+FinansIstegi = BinaHesapIstegi
 
 
 class PilGirdisiDto(BaseModel):
@@ -505,6 +594,8 @@ SiralamaOlcutuLiteral = Literal[
     "co2_ton",
     "geri_odeme_yil",
     "yatirim_tl",
+    "uygunluk_skoru",
+    "nbd_tl",
 ]
 
 # PROJE.md Bölüm 9'daki kısa DTO isimleri için eş anlamlı takma adlar
@@ -512,3 +603,4 @@ Varsayimlar = VarsayimlarDto
 HesapSonucu = HesapSonucuDto
 OsbOzeti = OsbOzetiDto
 SimulasyonSonucu = SimulasyonSonucuDto
+YillikNakitAkisi = YillikNakitAkisiDto

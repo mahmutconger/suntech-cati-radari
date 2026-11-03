@@ -1,4 +1,4 @@
-"""Hesap motoru ve varsayımlar FastAPI router'ı (PROJE.md Bölüm 5.4 ve 9)."""
+"""Hesap motoru ve varsayımlar FastAPI router'ı (PROJE.md Bölüm 5.4, 9 ve 22.1-22.3)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from app.application.hesap import (
     BinaDeposu,
     BinaHesapSorgusu,
+    FinansSorgusu,
     Hata,
     SimulasyonSorgusu,
     SiralamaSorgusu,
@@ -18,9 +19,10 @@ from app.application.hesap import (
     VarsayimlariGetirSorgusu,
 )
 from app.core.firebase import get_firestore_client
-from app.domain.varliklar import Bina
+from app.infrastructure.depo import VeritabaniHatasi, binalar as depo_binalar
 from app.schemas.hesap import (
     BinaHesapIstegi,
+    FinansIstegi,
     HesapSonucuDto,
     OsbOzetiDto,
     SimulasyonIstegi,
@@ -31,6 +33,7 @@ from app.schemas.hesap import (
     VarsayimKaynagiDto,
     VarsayimlarDto,
     VarsayimlarYaniti,
+    YillikNakitAkisiDto,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,63 +41,55 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["hesap"])
 
 
-class _FirestoreBellekBinaDeposu:
-    """Firestore `binalar` koleksiyonunu süreç içi önbellekle okuyan BinaDeposu uygulaması."""
+class _OrtakBinaDeposu:
+    """`app.infrastructure.depo` bellek önbelleğini ve `pvgis_izgara` saatlik serilerini kullanan BinaDeposu."""
 
     def __init__(self) -> None:
-        self._binalar: dict[int, Bina] | None = None
-        self._saatlik_onbellek: dict[int, list[float]] = {}
+        self._pvgis_saatlik: dict[str, list[float]] = {}
 
-    def _yukle(self) -> dict[int, Bina]:
-        if self._binalar is not None:
-            return self._binalar
+    def hepsi(self) -> list[dict]:
+        return depo_binalar()
 
-        try:
-            db = get_firestore_client()
-            docs = db.collection("binalar").stream()
-            sozluk: dict[int, Bina] = {}
-            for doc in docs:
-                veri = doc.to_dict() or {}
-                ham_id = veri.get("id") if veri.get("id") is not None else veri.get("osm_id", doc.id)
-                if ham_id is None:
-                    continue
-                bina_id = int(ham_id)
-                merkez_ham = veri.get("merkez")
-                merkez = None
-                if isinstance(merkez_ham, dict) and "lon" in merkez_ham and "lat" in merkez_ham:
-                    merkez = (float(merkez_ham["lon"]), float(merkez_ham["lat"]))
-                elif isinstance(merkez_ham, (list, tuple)) and len(merkez_ham) >= 2:
-                    merkez = (float(merkez_ham[0]), float(merkez_ham[1]))
-
-                ad_ham = veri.get("ad")
-                sozluk[bina_id] = Bina(
-                    id=bina_id,
-                    alan_m2=float(veri.get("alan_m2", 0.0)),
-                    verim_kwh_kwp=float(veri.get("verim_kwh_kwp") or 1340.0),
-                    ad=str(ad_ham).strip() if ad_ham else None,
-                    mevcut_ges=bool(veri.get("mevcut_ges", False)),
-                    merkez=merkez,
-                    osm_id=int(veri.get("osm_id", bina_id)),
-                )
-            self._binalar = sozluk
-            return self._binalar
-        except Exception as exc:
-            logger.warning("Firestore'dan binalar okunamadı: %s", exc)
-            return {}
-
-    def hepsi(self) -> list[Bina]:
-        return list(self._yukle().values())
-
-    def getir(self, bina_id: int) -> Bina | None:
-        return self._yukle().get(bina_id)
+    def getir(self, bina_id: int) -> dict | None:
+        return next(
+            (
+                b
+                for b in depo_binalar()
+                if b.get("osm_id") == bina_id or b.get("id") == bina_id
+            ),
+            None,
+        )
 
     def saatlik_uretim_wh_kwp(self, bina_id: int) -> list[float] | None:
-        if bina_id in self._saatlik_onbellek:
-            return self._saatlik_onbellek[bina_id]
+        bina = self.getir(bina_id)
+        if not bina:
+            return None
+        pvgis_id = bina.get("pvgis_id")
+        if not pvgis_id:
+            return None
+        anahtar = str(pvgis_id)
+        if anahtar in self._pvgis_saatlik:
+            return self._pvgis_saatlik[anahtar]
+        try:
+            doc = (
+                get_firestore_client()
+                .collection("pvgis_izgara")
+                .document(anahtar)
+                .get()
+            )
+            if doc.exists:
+                veri = doc.to_dict() or {}
+                saatlik = veri.get("saatlik_wh")
+                if isinstance(saatlik, list) and len(saatlik) == 8760:
+                    dizi = [float(x) for x in saatlik]
+                    self._pvgis_saatlik[anahtar] = dizi
+                    return dizi
+        except Exception as exc:
+            logger.warning("PVGIS saatlik seri okunamadı (%s): %s", anahtar, exc)
         return None
 
 
-_varsayilan_depo = _FirestoreBellekBinaDeposu()
+_varsayilan_depo = _OrtakBinaDeposu()
 
 
 def get_bina_deposu() -> BinaDeposu:
@@ -119,23 +114,25 @@ def _hata_yaniti(hata: Hata) -> JSONResponse:
     )
 
 
-def _varsayimlari_coz(
+def _toplu_istegi_coz(
     istek: TopluHesapIstegi | VarsayimlarDto | dict[str, Any] | None,
-) -> VarsayimlarDto:
-    """İstek gövdesinden (`{varsayimlar: ...}` ya da doğrudan `{kullanilabilir_oran: ...}`) VarsayimlarDto çıkarır."""
+) -> tuple[VarsayimlarDto, str]:
+    """İstek gövdesinden `(VarsayimlarDto, osb)` ikilisini çıkarır."""
     if istek is None:
-        return VarsayimlarDto()
+        return VarsayimlarDto(), "manisa"
     if isinstance(istek, TopluHesapIstegi):
-        return istek.varsayimlar
+        return istek.varsayimlar, istek.osb or "manisa"
     if isinstance(istek, VarsayimlarDto):
-        return istek
+        return istek, "manisa"
     if isinstance(istek, dict):
+        osb = str(istek.get("osb") or "manisa").strip() or "manisa"
         if "varsayimlar" in istek and isinstance(istek["varsayimlar"], dict):
-            return VarsayimlarDto.model_validate(istek["varsayimlar"])
-        if not istek:
-            return VarsayimlarDto()
-        return VarsayimlarDto.model_validate(istek)
-    return VarsayimlarDto()
+            return VarsayimlarDto.model_validate(istek["varsayimlar"]), osb
+        kopya = {k: v for k, v in istek.items() if k != "osb"}
+        if not kopya:
+            return VarsayimlarDto(), osb
+        return VarsayimlarDto.model_validate(kopya), osb
+    return VarsayimlarDto(), "manisa"
 
 
 @router.post("/hesap/toplu", response_model=TopluHesapYaniti)
@@ -143,11 +140,19 @@ async def hesap_toplu(
     istek: TopluHesapIstegi | VarsayimlarDto | None = Body(default=None),
     depo: BinaDeposu = Depends(get_bina_deposu),
 ) -> TopluHesapYaniti | JSONResponse:
-    """OSB'deki bütün çatılar için yıllık güneş enerjisi hesabını ve OSB özetini döner."""
-    varsayim_dto = _varsayimlari_coz(istek)
-    sonuc = await TopluHesapSorgusu(depo).calistir(varsayim_dto.to_domain())
+    """Seçilen OSB'deki bütün çatılar için yıllık güneş enerjisi hesabını, 25Y finansı, skoru ve OSB özetini döner."""
+    varsayim_dto, osb = _toplu_istegi_coz(istek)
+    try:
+        sonuc = await TopluHesapSorgusu(depo).calistir(
+            varsayim_dto.to_domain(), osb=osb
+        )
+    except VeritabaniHatasi:
+        return _hata_yaniti(Hata(kod="veritabani", mesaj="Firestore'a ulaşılamadı"))
+
     if not sonuc.basarili or sonuc.deger is None:
-        return _hata_yaniti(sonuc.hata or Hata(kod="hata", mesaj="Toplu hesap başarısız."))
+        return _hata_yaniti(
+            sonuc.hata or Hata(kod="hata", mesaj="Toplu hesap başarısız.")
+        )
 
     ozet_dto = OsbOzetiDto.from_domain(sonuc.deger.ozet)
     return TopluHesapYaniti(
@@ -163,17 +168,48 @@ async def hesap_bina(
     istek: BinaHesapIstegi | None = Body(default=None),
     depo: BinaDeposu = Depends(get_bina_deposu),
 ) -> HesapSonucuDto | JSONResponse:
-    """Tek bir bina için (varsa yıllık tüketim sınırı dahil) yıllık yatırım analizini döner."""
+    """Tek bir bina için yıllık yatırım analizini, 25 yıllık finans metriklerini ve uygunluk skorunu döner."""
     girdi = istek or BinaHesapIstegi()
-    sonuc = await BinaHesapSorgusu(depo).calistir(
-        bina_id=bina_id,
-        varsayimlar=girdi.varsayimlar.to_domain(),
-        yillik_tuketim_kwh=girdi.yillik_tuketim_kwh,
-    )
+    try:
+        sonuc = await BinaHesapSorgusu(depo).calistir(
+            bina_id=bina_id,
+            varsayimlar=girdi.varsayimlar.to_domain(),
+            yillik_tuketim_kwh=girdi.yillik_tuketim_kwh,
+        )
+    except VeritabaniHatasi:
+        return _hata_yaniti(Hata(kod="veritabani", mesaj="Firestore'a ulaşılamadı"))
+
     if not sonuc.basarili or sonuc.deger is None:
-        return _hata_yaniti(sonuc.hata or Hata(kod="bulunamadi", mesaj="Bina bulunamadı."))
+        return _hata_yaniti(
+            sonuc.hata or Hata(kod="bulunamadi", mesaj="Bina bulunamadı.")
+        )
 
     return HesapSonucuDto.from_domain(sonuc.deger)
+
+
+@router.post("/hesap/finans/{bina_id}", response_model=list[YillikNakitAkisiDto])
+async def hesap_finans(
+    bina_id: int,
+    istek: FinansIstegi | None = Body(default=None),
+    depo: BinaDeposu = Depends(get_bina_deposu),
+) -> list[YillikNakitAkisiDto] | JSONResponse:
+    """Tek bir bina için 25 yılın her yılına ait üretim, tasarruf, bakım, net ve kümülatif nakit akışını döner."""
+    girdi = istek or FinansIstegi()
+    try:
+        sonuc = await FinansSorgusu(depo).calistir(
+            bina_id=bina_id,
+            varsayimlar=girdi.varsayimlar.to_domain(),
+            yillik_tuketim_kwh=girdi.yillik_tuketim_kwh,
+        )
+    except VeritabaniHatasi:
+        return _hata_yaniti(Hata(kod="veritabani", mesaj="Firestore'a ulaşılamadı"))
+
+    if not sonuc.basarili or sonuc.deger is None:
+        return _hata_yaniti(
+            sonuc.hata or Hata(kod="bulunamadi", mesaj="Finans hesabı için bina bulunamadı.")
+        )
+
+    return [YillikNakitAkisiDto.from_domain(y) for y in sonuc.deger]
 
 
 @router.post("/hesap/simulasyon/{bina_id}", response_model=SimulasyonSonucuDto)
@@ -184,18 +220,23 @@ async def hesap_simulasyon(
 ) -> SimulasyonSonucuDto | JSONResponse:
     """Bina için 8.760 saatlik mahsuplaşma, vardiya, pil, kredi, statik ve şebeke simülasyonunu döner."""
     girdi = istek or SimulasyonIstegi()
-    sonuc = await SimulasyonSorgusu(depo).calistir(
-        bina_id=bina_id,
-        varsayimlar=girdi.varsayimlar.to_domain(),
-        vardiya=girdi.vardiya,
-        yillik_tuketim_kwh=girdi.yillik_tuketim_kwh,
-        pil_girdisi=girdi.pil.to_domain() if girdi.pil is not None else None,
-        kredi_girdisi=girdi.kredi.to_domain() if girdi.kredi is not None else None,
-        sebeke_girdisi=girdi.sebeke.to_domain(),
-    )
+    try:
+        sonuc = await SimulasyonSorgusu(depo).calistir(
+            bina_id=bina_id,
+            varsayimlar=girdi.varsayimlar.to_domain(),
+            vardiya=girdi.vardiya,
+            yillik_tuketim_kwh=girdi.yillik_tuketim_kwh,
+            pil_girdisi=girdi.pil.to_domain() if girdi.pil is not None else None,
+            kredi_girdisi=girdi.kredi.to_domain() if girdi.kredi is not None else None,
+            sebeke_girdisi=girdi.sebeke.to_domain(),
+        )
+    except VeritabaniHatasi:
+        return _hata_yaniti(Hata(kod="veritabani", mesaj="Firestore'a ulaşılamadı"))
+
     if not sonuc.basarili or sonuc.deger is None:
         return _hata_yaniti(
-            sonuc.hata or Hata(kod="bulunamadi", mesaj="Simülasyon için bina bulunamadı.")
+            sonuc.hata
+            or Hata(kod="bulunamadi", mesaj="Simülasyon için bina bulunamadı.")
         )
 
     return SimulasyonSonucuDto.from_domain(sonuc.deger)
@@ -205,12 +246,21 @@ async def hesap_simulasyon(
 async def hesap_sirala(
     olcut: SiralamaOlcutuLiteral = Query(default="tasarruf_tl"),
     adet: int = Query(default=20, ge=1, le=1000),
+    osb: str = Query(default="manisa"),
     depo: BinaDeposu = Depends(get_bina_deposu),
 ) -> list[HesapSonucuDto] | JSONResponse:
-    """OSB binalarını seçilen ölçüte göre (varsayılan: yıllık tasarruf, ilk 20) sıralı döner."""
-    sonuc = await SiralamaSorgusu(depo).calistir(olcut=olcut, adet=adet)
+    """Seçilen OSB binalarını belirtilen ölçüte göre (tasarruf_tl, uygunluk_skoru, nbd_tl vb.) sıralı döner."""
+    try:
+        sonuc = await SiralamaSorgusu(depo).calistir(
+            olcut=olcut, adet=adet, osb=osb
+        )
+    except VeritabaniHatasi:
+        return _hata_yaniti(Hata(kod="veritabani", mesaj="Firestore'a ulaşılamadı"))
+
     if not sonuc.basarili or sonuc.deger is None:
-        return _hata_yaniti(sonuc.hata or Hata(kod="gecersiz", mesaj="Sıralama yapılamadı."))
+        return _hata_yaniti(
+            sonuc.hata or Hata(kod="gecersiz", mesaj="Sıralama yapılamadı.")
+        )
 
     return [HesapSonucuDto.from_domain(s) for s in sonuc.deger]
 

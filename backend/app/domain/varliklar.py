@@ -20,11 +20,13 @@ class Bina:
     merkez: tuple[float, float] | None = None  # (lon, lat)
     osm_id: int | None = None
     osb_id: int | None = None
+    osb: str = "manisa"
+    trafo_mesafe_km: float | None = None
 
 
 @dataclass(frozen=True)
 class Varsayimlar:
-    """Hesap motoru varsayımları (kaydırıcılarla değiştirilebilir)."""
+    """Hesap motoru varsayımları (kaydırıcılarla değiştirilebilir, PROJE.md §16 ve §22.1)."""
 
     kullanilabilir_oran: float = 0.45
     m2_kwp: float = 6.5
@@ -33,11 +35,39 @@ class Varsayimlar:
     oz_tuketim_orani: float = 0.80
     maliyet_carpani: float = 1.0
     emisyon_faktoru: float = 0.6242
+    omur_yil: int = 25
+    degradasyon: float = 0.005
+    bakim_orani: float = 0.01
+    iskonto_orani: float = 0.08
+    tarife_artisi: float = 0.0
+
+
+@dataclass(frozen=True)
+class YillikNakitAkisi:
+    """25 yıllık finansal projeksiyonda tek bir yılın üretim ve nakit akışı satırı (PROJE.md §22.1)."""
+
+    yil: int
+    uretim_mwh: float
+    tasarruf_tl: float
+    bakim_tl: float
+    net_akis_tl: float
+    kumulatif_tl: float
+
+
+@dataclass(frozen=True)
+class FinansOzeti:
+    """25 yıllık yatırım finansmanı özet metrikleri ve yıllık nakit akışı tablosu."""
+
+    nbd_tl: float
+    ic_verim_orani: float
+    net_kazanc_25y_tl: float
+    lcoe_tl_kwh: float
+    yillik_akislar: list[YillikNakitAkisi] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
 class HesapSonucu:
-    """Tek bir bina için yıllık güneş enerjisi ve yatırım ön analiz sonucu."""
+    """Tek bir bina için yıllık güneş enerjisi, 25 yıllık finans ve uygunluk skoru sonucu."""
 
     bina_id: int
     kwp: float
@@ -46,6 +76,11 @@ class HesapSonucu:
     yatirim_tl: float
     geri_odeme_yil: float
     co2_ton: float
+    nbd_tl: float = 0.0
+    ic_verim_orani: float = 0.0
+    net_kazanc_25y_tl: float = 0.0
+    lcoe_tl_kwh: float = 0.0
+    uygunluk_skoru: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -58,6 +93,8 @@ class OsbOzeti:
     toplam_tasarruf_tl: float
     toplam_yatirim_tl: float
     toplam_co2_ton: float
+    toplam_nbd_tl: float = 0.0
+    ortalama_skor: float = 0.0
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,4 @@
-"""Bütün OSB binaları için toplu hesap, özet ve sıralama fonksiyonları."""
+"""Bütün OSB binaları için toplu hesap, özet ve sıralama fonksiyonları (PROJE.md §8 ve §22.3)."""
 
 from __future__ import annotations
 
@@ -16,17 +16,40 @@ SiralamaOlcutu = Literal[
     "co2_ton",
     "geri_odeme_yil",
     "yatirim_tl",
+    "uygunluk_skoru",
+    "nbd_tl",
 ]
 
 
+def osb_binalarini_suz(
+    binalar: Sequence[Bina],
+    osb: str | None = "manisa",
+) -> list[Bina]:
+    """Bina listesini seçilen OSB koduna göre süzer (`osb` boş/None olan kayıtlar 'manisa' sayılır)."""
+    hedef = (osb or "manisa").strip().lower()
+    if not hedef or hedef == "hepsi":
+        return list(binalar)
+    return [
+        b
+        for b in binalar
+        if (b.osb or "manisa").strip().lower() == hedef
+    ]
+
+
 def osb_ozeti_hesapla(sonuclar: Sequence[HesapSonucu]) -> OsbOzeti:
-    """Hesaplanan bina sonuçlarından OSB toplam özetini üretir."""
+    """Hesaplanan bina sonuçlarından OSB toplam özetini üretir (toplam NBD ve ortalama skor dahil)."""
     bina_sayisi = len(sonuclar)
     toplam_kwp = sum(s.kwp for s in sonuclar)
     toplam_mwh = sum(s.uretim_mwh for s in sonuclar)
     toplam_tasarruf_tl = sum(s.tasarruf_tl for s in sonuclar)
     toplam_yatirim_tl = sum(s.yatirim_tl for s in sonuclar)
     toplam_co2_ton = sum(s.co2_ton for s in sonuclar)
+    toplam_nbd_tl = sum(s.nbd_tl for s in sonuclar)
+    ortalama_skor = (
+        sum(s.uygunluk_skoru for s in sonuclar) / bina_sayisi
+        if bina_sayisi > 0
+        else 0.0
+    )
 
     return OsbOzeti(
         bina_sayisi=bina_sayisi,
@@ -35,6 +58,8 @@ def osb_ozeti_hesapla(sonuclar: Sequence[HesapSonucu]) -> OsbOzeti:
         toplam_tasarruf_tl=toplam_tasarruf_tl,
         toplam_yatirim_tl=toplam_yatirim_tl,
         toplam_co2_ton=toplam_co2_ton,
+        toplam_nbd_tl=toplam_nbd_tl,
+        ortalama_skor=ortalama_skor,
     )
 
 
@@ -57,7 +82,7 @@ def sonuclari_sirala(
     """Hesap sonuçlarını belirtilen ölçüte göre sıralar.
 
     Not: 'geri_odeme_yil' ölçütünde pozitif en kısa geri ödeme süresi öne gelir;
-    diğer tüm ölçütlerde büyükten küçüğe sıralanır (PROJE.md Bölüm 8).
+    diğer tüm ölçütlerde (tasarruf_tl, uygunluk_skoru, nbd_tl vb.) büyükten küçüğe sıralanır.
     """
     if adet <= 0:
         return []
@@ -69,6 +94,8 @@ def sonuclari_sirala(
         "co2_ton",
         "geri_odeme_yil",
         "yatirim_tl",
+        "uygunluk_skoru",
+        "nbd_tl",
     }
     alan = olcut if olcut in gecerli_olcutler else "tasarruf_tl"
 
@@ -80,7 +107,7 @@ def sonuclari_sirala(
     else:
         sirali = sorted(
             sonuclar,
-            key=lambda s: getattr(s, alan, 0.0),
+            key=lambda s: (getattr(s, alan, 0.0), s.tasarruf_tl),
             reverse=True,
         )
 

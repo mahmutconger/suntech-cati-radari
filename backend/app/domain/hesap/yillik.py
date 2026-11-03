@@ -1,8 +1,10 @@
-"""Yıllık deterministik güneş enerjisi ve yatırım hesap fonksiyonları (PROJE.md Bölüm 8)."""
+"""Yıllık deterministik güneş enerjisi ve yatırım hesap fonksiyonları (PROJE.md Bölüm 8 ve 22.3)."""
 
 from __future__ import annotations
 
-from app.domain.varliklar import Bina, HesapSonucu, Varsayimlar
+from app.domain.hesap.finans import finans_ozeti_hesapla
+from app.domain.hesap.skor import uygunluk_skoru_hesapla
+from app.domain.varliklar import Bina, FinansOzeti, HesapSonucu, Varsayimlar
 from app.domain.varsayilanlar import (
     MALIYET_BUYUK_TL_KWP,
     MALIYET_KADEME_BUYUK_SINIR_KWP,
@@ -61,8 +63,10 @@ def kwp_icin_hesapla(
     verim_kwh_kwp: float = VARSAYILAN_VERIM_KWH_KWP,
     varsayimlar: Varsayimlar | None = None,
     bina_id: int = 0,
+    trafo_mesafe_km: float | None = None,
+    mevcut_ges: bool = False,
 ) -> HesapSonucu:
-    """Verilen kurulu güç (kWp) ve özgül üretim için yıllık üretim ve finansal sonuçları hesaplar."""
+    """Verilen kurulu güç (kWp) ve özgül üretim için yıllık üretim, 25 yıllık finans ve uygunluk skorunu hesaplar."""
     v = varsayimlar or varsayilan_varsayimlar()
 
     if kwp <= 0 or verim_kwh_kwp <= 0:
@@ -74,6 +78,11 @@ def kwp_icin_hesapla(
             yatirim_tl=0.0,
             geri_odeme_yil=0.0,
             co2_ton=0.0,
+            nbd_tl=0.0,
+            ic_verim_orani=0.0,
+            net_kazanc_25y_tl=0.0,
+            lcoe_tl_kwh=0.0,
+            uygunluk_skoru=0.0,
         )
 
     uretim_kwh = kwp * verim_kwh_kwp
@@ -87,6 +96,20 @@ def kwp_icin_hesapla(
     geri_odeme_yil = (yatirim_tl / tasarruf_tl) if tasarruf_tl > 0 else 0.0
     co2_ton = uretim_mwh * v.emisyon_faktoru
 
+    finans = finans_ozeti_hesapla(
+        ilk_yil_uretim_mwh=uretim_mwh,
+        ilk_yil_tasarruf_tl=tasarruf_tl,
+        yatirim_tl=yatirim_tl,
+        varsayimlar=v,
+    )
+    skor = uygunluk_skoru_hesapla(
+        geri_odeme_yil=geri_odeme_yil,
+        verim_kwh_kwp=verim_kwh_kwp,
+        kwp=kwp,
+        trafo_mesafe_km=trafo_mesafe_km,
+        mevcut_ges=mevcut_ges,
+    )
+
     return HesapSonucu(
         bina_id=bina_id,
         kwp=kwp,
@@ -95,6 +118,11 @@ def kwp_icin_hesapla(
         yatirim_tl=yatirim_tl,
         geri_odeme_yil=geri_odeme_yil,
         co2_ton=co2_ton,
+        nbd_tl=finans.nbd_tl,
+        ic_verim_orani=finans.ic_verim_orani,
+        net_kazanc_25y_tl=finans.net_kazanc_25y_tl,
+        lcoe_tl_kwh=finans.lcoe_tl_kwh,
+        uygunluk_skoru=skor,
     )
 
 
@@ -103,7 +131,7 @@ def bina_hesapla(
     varsayimlar: Varsayimlar | None = None,
     yillik_tuketim_kwh: float | None = None,
 ) -> HesapSonucu:
-    """Bina varlığı için kurulu gücü ve yıllık yatırım analizini hesaplar."""
+    """Bina varlığı için kurulu gücü, yıllık yatırım analizini, 25Y finansı ve uygunluk skorunu hesaplar."""
     v = varsayimlar or varsayilan_varsayimlar()
     verim = bina.verim_kwh_kwp if bina.verim_kwh_kwp > 0 else VARSAYILAN_VERIM_KWH_KWP
 
@@ -119,4 +147,26 @@ def bina_hesapla(
         verim_kwh_kwp=verim,
         varsayimlar=v,
         bina_id=bina.id,
+        trafo_mesafe_km=bina.trafo_mesafe_km,
+        mevcut_ges=bina.mevcut_ges,
+    )
+
+
+def bina_finans_hesapla(
+    bina: Bina,
+    varsayimlar: Varsayimlar | None = None,
+    yillik_tuketim_kwh: float | None = None,
+) -> FinansOzeti:
+    """Tek bir bina için 25 yıllık nakit akışı tablosunu ve finansal özet metriklerini hesaplar."""
+    v = varsayimlar or varsayilan_varsayimlar()
+    temel = bina_hesapla(
+        bina=bina,
+        varsayimlar=v,
+        yillik_tuketim_kwh=yillik_tuketim_kwh,
+    )
+    return finans_ozeti_hesapla(
+        ilk_yil_uretim_mwh=temel.uretim_mwh,
+        ilk_yil_tasarruf_tl=temel.tasarruf_tl,
+        yatirim_tl=temel.yatirim_tl,
+        varsayimlar=v,
     )
