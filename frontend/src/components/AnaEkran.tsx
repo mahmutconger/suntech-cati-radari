@@ -3,6 +3,7 @@
 // Ana sayfa düzeni: tam ekran harita; üstte arama ve katman seçici;
 // masaüstünde sağda yan panel, telefonda alt çekmece.
 
+import Link from "next/link";
 import { AramaCubugu } from "@/components/arama/AramaCubugu";
 import { KatmanSecici, Lejant, TrafoDugmesi } from "@/components/harita/HaritaKontrolleri";
 import { HaritaYukleyici } from "@/components/harita/HaritaYukleyici";
@@ -35,6 +36,13 @@ export function AnaEkran() {
         <div className="pointer-events-auto order-2 ml-auto flex items-center gap-2 md:order-3 md:ml-0">
           <KatmanSecici />
           <TrafoDugmesi />
+          <Link
+            href="/qr"
+            title="Siteyi telefonda açmak için QR kod"
+            className="rounded-full border border-white/15 bg-slate-900/85 px-3 py-1.5 text-xs font-medium text-slate-100 shadow-lg backdrop-blur hover:bg-slate-800"
+          >
+            ▦ QR
+          </Link>
           <OturumMenusu />
         </div>
         <div className="pointer-events-auto order-3 flex w-full gap-2 md:order-2 md:max-w-xl">
