@@ -181,6 +181,27 @@ function Catilar() {
   );
 }
 
+/**
+ * Harita kutusu büyüyüp küçülünce (yan panel genişlerken) Leaflet'e haber ver; her karede bir kez.
+ * Merkez korunur: seçili bina panel genişlerken de ortada kalır.
+ */
+function BoyutIzleyici() {
+  const harita = useMap();
+  useEffect(() => {
+    let kare = 0;
+    const gozlemci = new ResizeObserver(() => {
+      cancelAnimationFrame(kare);
+      kare = requestAnimationFrame(() => harita.invalidateSize({ pan: true, animate: false }));
+    });
+    gozlemci.observe(harita.getContainer());
+    return () => {
+      cancelAnimationFrame(kare);
+      gozlemci.disconnect();
+    };
+  }, [harita]);
+  return null;
+}
+
 function SecimTemizleyici() {
   const harita = useMap();
   const binaSec = useHaritaDurumu((d) => d.binaSec);
@@ -218,6 +239,7 @@ export default function Harita() {
       <OsbGorunumu />
       <Odaklayici />
       <SecimTemizleyici />
+      <BoyutIzleyici />
       <SeciliBinaOdagi />
     </MapContainer>
   );

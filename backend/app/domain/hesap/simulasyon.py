@@ -11,7 +11,11 @@ from app.domain.hesap.profil import (
     vardiya_tuketim_profili_uret,
 )
 from app.domain.hesap.statik import statik_on_kontrol_hesapla
-from app.domain.hesap.yillik import birim_maliyet_tl_kwp, kwp_hesapla
+from app.domain.hesap.yillik import (
+    birim_maliyet_tl_kwp,
+    kwp_hesapla,
+    yatirim_maliyeti_hesapla,
+)
 from app.domain.varliklar import (
     Bina,
     KrediGirdisi,
@@ -159,7 +163,7 @@ def bina_simulasyonu_hesapla(
     pilsiz_sebeke_kwh = sum(saatlik_sebeke_kwh)
     pilsiz_kisitlanan_kwh = sum(saatlik_kisitlanan_kwh)
 
-    cati_yatirim_tl = kwp * birim_maliyet_tl_kwp(kwp, v.maliyet_carpani)
+    cati_yatirim_tl = yatirim_maliyeti_hesapla(kwp, v.maliyet_carpani)
     pilsiz_tasarruf_tl = (
         pilsiz_oz_kwh * v.tarife_tl_kwh + pilsiz_sebeke_kwh * v.fazla_fiyat_tl_kwh
     )

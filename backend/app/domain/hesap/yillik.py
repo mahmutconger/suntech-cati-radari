@@ -33,6 +33,29 @@ def birim_maliyet_tl_kwp(kwp: float, maliyet_carpani: float = 1.0) -> float:
     return taban * maliyet_carpani
 
 
+def yatirim_maliyeti_hesapla(kwp: float, maliyet_carpani: float = 1.0) -> float:
+    """Kurulu güce (kWp) göre toplam kurulum maliyetini (TL) tavan korumalı döner.
+
+    Tavan Koruması (Monotonicity Guard):
+    Kademeli fiyatlandırmada daha küçük bir sistemin toplam maliyeti,
+    ölçek ekonomisi nedeniyle bir üst kademenin taban maliyetini asla geçemez:
+    - <= 250 kWp bir sistem, 250 kWp üstü taban maliyeti (250 * 25.650 TL * çarpan) aşamaz.
+    - < 1.000 kWp bir sistem, 1.000 kWp taban maliyeti (1.000 * 21.200 TL * çarpan) aşamaz.
+    """
+    if kwp <= 0:
+        return 0.0
+
+    ham_maliyet = kwp * birim_maliyet_tl_kwp(kwp, maliyet_carpani)
+    tavan_orta = MALIYET_KADEME_KUCUK_SINIR_KWP * MALIYET_ORTA_TL_KWP * maliyet_carpani
+    tavan_buyuk = MALIYET_KADEME_BUYUK_SINIR_KWP * MALIYET_BUYUK_TL_KWP * maliyet_carpani
+
+    if kwp <= MALIYET_KADEME_KUCUK_SINIR_KWP:
+        return min(ham_maliyet, tavan_orta)
+    if kwp < MALIYET_KADEME_BUYUK_SINIR_KWP:
+        return min(ham_maliyet, tavan_buyuk)
+    return ham_maliyet
+
+
 def kwp_hesapla(
     alan_m2: float,
     kullanilabilir_oran: float = 0.45,
@@ -92,7 +115,7 @@ def kwp_icin_hesapla(
     birim_gelir_tl_kwh = oz * v.tarife_tl_kwh + (1.0 - oz) * v.fazla_fiyat_tl_kwh
     tasarruf_tl = uretim_kwh * birim_gelir_tl_kwh
 
-    yatirim_tl = kwp * birim_maliyet_tl_kwp(kwp, v.maliyet_carpani)
+    yatirim_tl = yatirim_maliyeti_hesapla(kwp, v.maliyet_carpani)
     geri_odeme_yil = (yatirim_tl / tasarruf_tl) if tasarruf_tl > 0 else 0.0
     co2_ton = uretim_mwh * v.emisyon_faktoru
 

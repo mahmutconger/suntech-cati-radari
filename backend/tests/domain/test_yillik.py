@@ -11,6 +11,7 @@ from app.domain.hesap import (
     kwp_hesapla,
     kwp_icin_hesapla,
     toplu_hesapla,
+    yatirim_maliyeti_hesapla,
 )
 from app.domain.varliklar import Bina, Varsayimlar
 from app.domain.varsayilanlar import varsayilan_varsayimlar
@@ -69,6 +70,25 @@ def test_maliyet_kademeleri() -> None:
     assert birim_maliyet_tl_kwp(999.9) == 25650.0
     assert birim_maliyet_tl_kwp(1000.0) == 21200.0
     assert birim_maliyet_tl_kwp(2500.0, maliyet_carpani=1.1) == 21200.0 * 1.1
+
+
+def test_yatirim_tavan_korumasi() -> None:
+    """Tavan koruması kontrolü: daha küçük çatı bir üst kademenin taban maliyetini aşamaz."""
+    # 250 kWp sınırında:
+    # 250 kWp ham = 250 * 31.500 = 7.875.000 TL
+    # Tavan = 250 * 25.650 = 6.412.500 TL
+    assert yatirim_maliyeti_hesapla(250.0) == 6_412_500.0
+    # 240 kWp ham = 240 * 31.500 = 7.560.000 TL -> tavan 6.412.500 TL'ye sabitlenir
+    assert yatirim_maliyeti_hesapla(240.0) == 6_412_500.0
+    # 100 kWp ham = 100 * 31.500 = 3.150.000 TL < 6.412.500 TL -> tavana takılmaz
+    assert yatirim_maliyeti_hesapla(100.0) == 3_150_000.0
+
+    # 1.000 kWp sınırında:
+    # 950 kWp ham = 950 * 25.650 = 24.367.500 TL
+    # Tavan = 1.000 * 21.200 = 21.200.000 TL
+    assert yatirim_maliyeti_hesapla(950.0) == 21_200_000.0
+    # 500 kWp ham = 500 * 25.650 = 12.825.000 TL < 21.200.000 TL -> tavana takılmaz
+    assert yatirim_maliyeti_hesapla(500.0) == 12_825_000.0
 
 
 def test_tuketim_siniri_boyutlama() -> None:

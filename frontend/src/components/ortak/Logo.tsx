@@ -15,7 +15,10 @@ export function Logo({ cam = false, href = "/", adSinifi = "" }: { cam?: boolean
       <span className="flex aspect-square h-10 items-center justify-center rounded-full bg-gradient-to-br from-limon via-seftali to-mercan shadow-inner">
         <Sun className="h-5 w-5 text-murekkep" strokeWidth={2.4} aria-hidden />
       </span>
-      <span className={`pr-3 text-base font-bold tracking-tight md:text-lg ${adSinifi}`}>Çatı Radarı</span>
+      {/* Ad iki katlı: dış kutu daralıp kaybolabilir (adSinifi), boşluk içtekinde */}
+      <span className={adSinifi}>
+        <span className="block pr-3 text-base font-bold tracking-tight md:text-lg">Çatı Radarı</span>
+      </span>
     </Link>
   );
 }

@@ -7,8 +7,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, Menu, Sun, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useMasaustu } from "@/hooks/useMasaustu";
 import { tanitimiGorulduSay } from "@/lib/tanitim";
 import { girisAdresi } from "@/lib/yonlendirme";
+import { SideRays } from "./SideRays";
 import { YatayOzellikSeridi } from "./YatayOzellikSeridi";
 
 /**
@@ -35,6 +37,9 @@ const IKINCIL_DUGME =
 
 export function TanitimEkrani({ sonra }: { sonra: string }) {
   const [mobilMenuAcik, setMobilMenuAcik] = useState(false);
+  const [isinlarCiziliyor, setIsinlarCiziliyor] = useState(false);
+  // Dar (dikey) ekranda kaynak parıltısı tek bir leke gibi kalıyor; telefonda parıltı ve yoğunluk düşük.
+  const telefon = useMasaustu() === false;
   const giris = girisAdresi(sonra);
   const kayit = girisAdresi(sonra, "kayit");
 
@@ -50,14 +55,43 @@ export function TanitimEkrani({ sonra }: { sonra: string }) {
   return (
     <>
       <div className="relative min-h-dvh overflow-hidden bg-zemin">
-        {/* Gren dokulu degrade arka plan */}
-        <div className="absolute -right-60 -top-10 z-0 flex flex-col items-end blur-xl">
+        {/* Gren dokulu degrade arka plan: WebGL2 olmayan tarayıcıda görünen yedek; ışınlar çizilince sönükleşir */}
+        <div
+          aria-hidden
+          className={`absolute -right-60 -top-10 z-0 flex flex-col items-end blur-xl transition-opacity duration-1000 ${
+            isinlarCiziliyor ? "opacity-0" : "opacity-100"
+          }`}
+        >
           <div className="z-1 h-[10rem] w-[60rem] rounded-full bg-gradient-to-b from-seftali to-mercan blur-[6rem]" />
           <div className="z-1 h-[10rem] w-[90rem] rounded-full bg-gradient-to-b from-limon to-seftali blur-[6rem]" />
           <div className="z-1 h-[10rem] w-[60rem] rounded-full bg-gradient-to-b from-limon to-limon/40 blur-[6rem]" />
         </div>
         <div className="bg-noise absolute inset-0 z-0 opacity-30" />
-        <CatiSiluetleri />
+
+        {/* Sağ üst köşeden yayılan, fareyi izleyen güneş ışınları (WebGL2; yoksa degrade kalır) */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
+          <SideRays
+            rayColor1="#FFC46B"
+            rayColor2="#96c8ff"
+            origin="top-right"
+            speed={3.2}
+            intensity={telefon ? 2.2 : 3.15}
+            spread={telefon ? 1.8 : 2.25}
+            density={8}
+            followMouse
+            blend={0}
+            sharpness={0.34}
+            tilt={10}
+            falloff={1.55}
+            glow={telefon ? 0.8 : 2.25}
+            saturation={1.9}
+            dust={0.35}
+            mouseInfluence={0.22}
+            opacity={0.91}
+            lightMode
+            onHazir={() => setIsinlarCiziliyor(true)}
+          />
+        </div>
 
         <div className="relative z-10">
           {/* Üst menü */}
@@ -211,75 +245,3 @@ export function TanitimEkrani({ sonra }: { sonra: string }) {
     </>
   );
 }
-
-function CatiSiluetleri() {
-  return (
-    <div className="absolute inset-0 z-[1] overflow-hidden opacity-[0.07]" aria-hidden>
-      <svg
-        className="absolute bottom-0 left-0 w-full"
-        viewBox="0 0 1440 520"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        preserveAspectRatio="xMidYMax slice"
-      >
-        {/* Fabrika çatı siluetleri */}
-        <path
-          d="M0 520V380l120-40 80 20 60-60 100 30 40-50 80 40 60-30 100 50 80-20 60 30 40-40 100 20 60-30 80 40 60-20 100 30 80-50 60 40 40-30 100 50v150z"
-          fill="currentColor"
-          className="text-murekkep"
-        />
-        <path
-          d="M0 520V420l140-30 100 20 80-40 60 30 120-50 80 20 40-30 100 40 80-20 60 30 100-40 80 20 60-30 40 20 100-40 80 30 60-20v140z"
-          fill="currentColor"
-          className="text-murekkep/80"
-        />
-
-        {/* Güneş paneli ızgaraları - sol bina */}
-        <g className="text-limon" fill="currentColor" opacity="0.6">
-          <rect x="140" y="330" width="18" height="10" rx="1" transform="rotate(-8 140 330)" />
-          <rect x="162" y="327" width="18" height="10" rx="1" transform="rotate(-8 162 327)" />
-          <rect x="184" y="324" width="18" height="10" rx="1" transform="rotate(-8 184 324)" />
-          <rect x="140" y="344" width="18" height="10" rx="1" transform="rotate(-8 140 344)" />
-          <rect x="162" y="341" width="18" height="10" rx="1" transform="rotate(-8 162 341)" />
-          <rect x="184" y="338" width="18" height="10" rx="1" transform="rotate(-8 184 338)" />
-        </g>
-
-        {/* Güneş paneli ızgaraları - orta bina */}
-        <g className="text-seftali" fill="currentColor" opacity="0.5">
-          <rect x="520" y="310" width="22" height="12" rx="1" transform="rotate(-5 520 310)" />
-          <rect x="546" y="308" width="22" height="12" rx="1" transform="rotate(-5 546 308)" />
-          <rect x="572" y="306" width="22" height="12" rx="1" transform="rotate(-5 572 306)" />
-          <rect x="598" y="304" width="22" height="12" rx="1" transform="rotate(-5 598 304)" />
-          <rect x="520" y="326" width="22" height="12" rx="1" transform="rotate(-5 520 326)" />
-          <rect x="546" y="324" width="22" height="12" rx="1" transform="rotate(-5 546 324)" />
-          <rect x="572" y="322" width="22" height="12" rx="1" transform="rotate(-5 572 322)" />
-          <rect x="598" y="320" width="22" height="12" rx="1" transform="rotate(-5 598 320)" />
-        </g>
-
-        {/* Güneş paneli ızgaraları - sağ bina */}
-        <g className="text-mercan" fill="currentColor" opacity="0.4">
-          <rect x="980" y="340" width="20" height="11" rx="1" transform="rotate(-6 980 340)" />
-          <rect x="1004" y="337" width="20" height="11" rx="1" transform="rotate(-6 1004 337)" />
-          <rect x="1028" y="334" width="20" height="11" rx="1" transform="rotate(-6 1028 334)" />
-          <rect x="980" y="355" width="20" height="11" rx="1" transform="rotate(-6 980 355)" />
-          <rect x="1004" y="352" width="20" height="11" rx="1" transform="rotate(-6 1004 352)" />
-          <rect x="1028" y="349" width="20" height="11" rx="1" transform="rotate(-6 1028 349)" />
-        </g>
-
-        {/* Güneş ışınları - sağ üst */}
-        <circle cx="1300" cy="180" r="30" className="text-limon" fill="currentColor" opacity="0.3" />
-        <g stroke="currentColor" className="text-limon" strokeWidth="2" opacity="0.2">
-          <line x1="1300" y1="140" x2="1300" y2="125" />
-          <line x1="1300" y1="220" x2="1300" y2="235" />
-          <line x1="1260" y1="180" x2="1245" y2="180" />
-          <line x1="1340" y1="180" x2="1355" y2="180" />
-          <line x1="1272" y1="152" x2="1261" y2="141" />
-          <line x1="1328" y1="208" x2="1339" y2="219" />
-          <line x1="1272" y1="208" x2="1261" y2="219" />
-          <line x1="1328" y1="152" x2="1339" y2="141" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
