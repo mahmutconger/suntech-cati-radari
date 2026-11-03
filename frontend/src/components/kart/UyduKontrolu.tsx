@@ -3,14 +3,16 @@
 // "Uyduda kontrol et": Gemini çatının uydu görüntüsüne bakar; panel var mı, ne kadarını kaplıyor.
 // Yalnızca düğmeyle çalışır, çünkü her istek Gemini kotasından düşer.
 
+import { LoaderCircle, Satellite } from "lucide-react";
 import { useUyduKontrolu } from "@/hooks/veri";
 import { ApiHatasi } from "@/lib/api";
+import { IKINCIL_DUGME } from "@/lib/stil";
 import type { UyduSonucu } from "@/types/gecici";
 
 const PANEL_METNI: Record<UyduSonucu["panel"], { metin: string; renk: string }> = {
-  var: { metin: "Çatıda panel görünüyor", renk: "bg-sky-500/15 text-sky-200 ring-sky-400/30" },
-  yok: { metin: "Çatıda panel görünmüyor", renk: "bg-emerald-500/15 text-emerald-200 ring-emerald-400/30" },
-  belirsiz: { metin: "Görüntüden emin olunamadı", renk: "bg-amber-400/15 text-amber-200 ring-amber-400/30" },
+  var: { metin: "Çatıda panel görünüyor", renk: "bg-sky-50 text-sky-900 ring-sky-200" },
+  yok: { metin: "Çatıda panel görünmüyor", renk: "bg-emerald-50 text-emerald-900 ring-emerald-200" },
+  belirsiz: { metin: "Görüntüden emin olunamadı", renk: "bg-gradient-to-br from-limon/40 to-seftali/30 text-murekkep ring-seftali/40" },
 };
 
 function hataMetni(hata: Error): string {
@@ -26,7 +28,10 @@ export function UyduKontrolu({ binaId }: { binaId: number }) {
     const p = PANEL_METNI[sonuc.panel];
     return (
       <div className={`rounded-2xl px-3 py-2.5 ring-1 ${p.renk}`}>
-        <p className="text-sm font-semibold">🛰 {p.metin}</p>
+        <p className="flex items-center gap-2 text-sm font-semibold">
+          <Satellite className="h-4 w-4" aria-hidden />
+          {p.metin}
+        </p>
         {sonuc.aciklama && <p className="mt-1 text-xs leading-snug opacity-90">{sonuc.aciklama}</p>}
         <p className="mt-1 text-[11px] opacity-75">
           {sonuc.panel === "var" && `Çatının yaklaşık %${Math.round(sonuc.kaplama_orani * 100)}'i kaplı · `}
@@ -43,11 +48,12 @@ export function UyduKontrolu({ binaId }: { binaId: number }) {
         type="button"
         onClick={() => mutate()}
         disabled={isPending}
-        className="w-full rounded-xl border border-sky-400/40 px-4 py-2.5 text-sm font-semibold text-sky-200 hover:bg-sky-400/10 disabled:opacity-60"
+        className={`${IKINCIL_DUGME} w-full`}
       >
-        {isPending ? "Gemini uydu görüntüsüne bakıyor…" : "🛰 Uyduda kontrol et"}
+        {isPending ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <Satellite className="h-4 w-4" aria-hidden />}
+        {isPending ? "Gemini uydu görüntüsüne bakıyor…" : "Uyduda kontrol et"}
       </button>
-      {isError && <p className="text-xs text-red-300">{hataMetni(error)}</p>}
+      {isError && <p className="text-xs text-mercan-koyu">{hataMetni(error)}</p>}
     </div>
   );
 }

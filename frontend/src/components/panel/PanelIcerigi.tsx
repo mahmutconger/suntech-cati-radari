@@ -7,9 +7,11 @@ import { useMemo, useState } from "react";
 import { CatiKarti } from "@/components/kart/CatiKarti";
 import { binaAdi, Deger, SkorRozeti } from "@/components/ortak/Deger";
 import { Kaydiricilar } from "@/components/panel/Kaydiricilar";
+import { PanelBolumu } from "@/components/panel/PanelBolumu";
 import { useBinalar, useSeciliOsb, useSkorVar, useTopluHesap } from "@/hooks/veri";
 import { SAHTE_VERI } from "@/lib/api";
 import { sayi, tl } from "@/lib/bicim";
+import { HATA, KART, SECILI_CIP } from "@/lib/stil";
 import { useHaritaDurumu } from "@/store/harita";
 import type { HesapSonucu } from "@/types/gecici";
 
@@ -35,15 +37,16 @@ function OsbOzetiBolumu() {
       .map((s) => ({ ...s, ad: adlar.get(s.bina_id) ?? "" }));
   }, [hesap, binalar, olcut]);
 
-  if (isError) return <p className="rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-200">{error.message}</p>;
-  if (isPending || !hesap) return <p className="text-sm text-slate-400">Hesaplanıyor…</p>;
+  if (isError) return <p className={HATA}>{error.message}</p>;
+  if (isPending || !hesap) return <p className="text-sm text-murekkep/55">Hesaplanıyor…</p>;
   const o = hesap.ozet;
 
   return (
     <section className={`space-y-4 transition-opacity ${isFetching ? "opacity-70" : ""}`}>
       <div>
-        <h2 className="text-lg font-semibold text-slate-50">{osb?.ad ?? "Manisa OSB"} güneş potansiyeli</h2>
-        <p className="text-xs text-slate-400">{sayi(o.bina_sayisi)} çatı · 1.000 m² üstü · ilk kaba hesap</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mercan-koyu">OSB özeti</p>
+        <h2 className="text-xl font-bold tracking-tight text-murekkep">{osb?.ad ?? "Manisa OSB"} güneş potansiyeli</h2>
+        <p className="text-xs text-murekkep/55">{sayi(o.bina_sayisi)} çatı · 1.000 m² üstü · ilk kaba hesap</p>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <Deger etiket="Yıllık tasarruf" deger={`${tl(o.toplam_tasarruf_tl)}/yıl`} vurgu />
@@ -56,13 +59,13 @@ function OsbOzetiBolumu() {
           <Deger etiket="Ortalama uygunluk" deger={`${sayi(o.ortalama_skor)}/100`} />
         )}
       </div>
-      <div>
+      <div className={`${KART} p-3`}>
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-slate-200">
+          <h3 className="text-sm font-semibold text-murekkep">
             {olcut === "skor" ? "İlk gidilecek 20 çatı" : "En çok kazandıracak 20 çatı"}
           </h3>
           {skorVar && (
-            <div className="flex rounded-full bg-white/5 p-0.5 text-[11px]">
+            <div className="flex rounded-full bg-murekkep/5 p-0.5 text-[11px]">
               {(
                 [
                   ["skor", "Uygunluk"],
@@ -75,7 +78,7 @@ function OsbOzetiBolumu() {
                   onClick={() => setOlcut(deger)}
                   aria-pressed={olcut === deger}
                   className={`rounded-full px-2.5 py-0.5 font-medium ${
-                    olcut === deger ? "bg-amber-400 text-slate-900" : "text-slate-300 hover:bg-white/10"
+                    olcut === deger ? SECILI_CIP : "text-murekkep/60 hover:bg-murekkep/5"
                   }`}
                 >
                   {etiket}
@@ -90,14 +93,14 @@ function OsbOzetiBolumu() {
               <button
                 type="button"
                 onClick={() => binaSec(s.bina_id, true)}
-                className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-white/10"
+                className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-limon/30"
               >
-                <span className="w-5 text-right text-xs text-slate-500">{i + 1}</span>
-                <span className="flex-1 truncate text-slate-100">{binaAdi({ id: s.bina_id, ad: s.ad })}</span>
+                <span className="w-5 text-right text-xs text-murekkep/40">{i + 1}</span>
+                <span className="flex-1 truncate text-murekkep">{binaAdi({ id: s.bina_id, ad: s.ad })}</span>
                 {olcut === "skor" && typeof s.uygunluk_skoru === "number" ? (
                   <SkorRozeti skor={s.uygunluk_skoru} kucuk />
                 ) : (
-                  <span className="text-xs font-medium text-amber-300">{tl(s.tasarruf_tl)}</span>
+                  <span className="text-xs font-semibold text-murekkep/80">{tl(s.tasarruf_tl)}</span>
                 )}
               </button>
             </li>
@@ -113,12 +116,14 @@ export function PanelIcerigi() {
   return (
     <div className="space-y-4">
       {SAHTE_VERI && (
-        <p className="rounded-lg bg-amber-400/15 px-3 py-1.5 text-[11px] text-amber-200">
+        <p className="rounded-lg bg-limon/40 px-3 py-1.5 text-[11px] text-murekkep">
           Sahte veriyle çalışıyor (geliştirme)
         </p>
       )}
       {seciliId !== null ? <CatiKarti binaId={seciliId} /> : <OsbOzetiBolumu />}
-      <Kaydiricilar />
+      <PanelBolumu ad="varsayim">
+        <Kaydiricilar />
+      </PanelBolumu>
     </div>
   );
 }

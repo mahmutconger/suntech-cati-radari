@@ -10,13 +10,13 @@ export interface RenkKademesi {
   etiket: string;
 }
 
-/** Yıllık tasarruf, TL: açık sarıdan koyu kırmızıya. */
+/** Yıllık tasarruf, TL: paletteki limondan şeftaliye, oradan mercana (az → çok). */
 export const RENK_KADEMELERI: RenkKademesi[] = [
-  { alt: 0, renk: "#fde68a", etiket: "< 1 milyon" },
-  { alt: 1_000_000, renk: "#fbbf24", etiket: "1-2,5 milyon" },
-  { alt: 2_500_000, renk: "#f59e0b", etiket: "2,5-5 milyon" },
-  { alt: 5_000_000, renk: "#ea580c", etiket: "5-10 milyon" },
-  { alt: 10_000_000, renk: "#b91c1c", etiket: "> 10 milyon" },
+  { alt: 0, renk: "#e1eb71", etiket: "< 1 milyon" },
+  { alt: 1_000_000, renk: "#e7cb6d", etiket: "1-2,5 milyon" },
+  { alt: 2_500_000, renk: "#ecab69", etiket: "2,5-5 milyon" },
+  { alt: 5_000_000, renk: "#e88665", etiket: "5-10 milyon" },
+  { alt: 10_000_000, renk: "#e36161", etiket: "> 10 milyon" },
 ];
 
 /** Uygunluk skoru, 0-100: soluk yeşilden koyu yeşile. */
@@ -28,7 +28,7 @@ export const SKOR_KADEMELERI: RenkKademesi[] = [
   { alt: 85, renk: "#14532d", etiket: "85-100" },
 ];
 
-export const HESAPSIZ_RENK = "#94a3b8";
+export const HESAPSIZ_RENK = "#b8b2a7";
 
 function kademeRengi(deger: number | undefined, kademeler: RenkKademesi[]): string {
   if (deger === undefined || !Number.isFinite(deger)) return HESAPSIZ_RENK;

@@ -7,6 +7,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useCallback, useEffect, useRef } from "react";
 import { CircleMarker, GeoJSON, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
+import { gorunurBant, SeciliBinaOdagi } from "@/components/harita/SeciliBinaOdagi";
 import { useBinalar, useHesapSozlugu, useSeciliOsb, useTrafolar } from "@/hooks/veri";
 import { sayi } from "@/lib/bicim";
 import { KATMANLAR, OSB_SINIR_KUTUSU as K } from "@/lib/sabitler";
@@ -72,7 +73,7 @@ function OsbSiniri() {
       key={osb.id}
       data={ozellik}
       interactive={false}
-      style={{ color: "#38bdf8", weight: 2.5, dashArray: "6 6", fillOpacity: 0.04 }}
+      style={{ color: "#e36161", weight: 2.5, dashArray: "6 6", fillOpacity: 0.03 }}
     />
   );
 }
@@ -91,7 +92,7 @@ function TrafoKatmani() {
             key={t.id}
             center={[lat, lon]}
             radius={8}
-            pathOptions={{ color: "#0f172a", weight: 2, fillColor: "#a78bfa", fillOpacity: 0.95 }}
+            pathOptions={{ color: "#1c1a17", weight: 2, fillColor: "#a78bfa", fillOpacity: 0.95 }}
           >
             <Popup>
               <strong>{p.ad || "Adsız trafo merkezi"}</strong>
@@ -109,7 +110,7 @@ function TrafoKatmani() {
   );
 }
 
-/** Arama ya da listeden seçilen binaya uçar. */
+/** Seçilen binaya (haritadan, aramadan ya da listeden) yakınlaşır ve onu görünür bandın ortasına alır. */
 function Odaklayici() {
   const harita = useMap();
   const hedef = useHaritaDurumu((d) => d.odaklanilacakBinaId);
@@ -120,8 +121,21 @@ function Odaklayici() {
     if (hedef === null || !data) return;
     const bina = data.features.find((f) => f.properties.id === hedef);
     if (bina) {
+      // Bina, başlığın altı ile (telefonda) yarım açık çekmecenin üstü arasındaki bandın ortasına gelir;
+      // çevresindeki düğmelere yer kalsın diye yanlardan ve üst/alttan pay bırakılır.
+      // Pay ekranla orantılı: büyük binalar da bandın ortasında, çevresindeki beş düğmeyle birlikte görünür.
       const sinir = L.geoJSON(bina as GeoJSON.Feature).getBounds();
-      harita.flyToBounds(sinir, { maxZoom: 17, padding: [80, 80], duration: 0.8 });
+      const bant = gorunurBant(harita);
+      const boyut = harita.getSize();
+      const bantYuksekligi = bant.alt - bant.ust;
+      const yanPay = boyut.x < 600 ? 100 : Math.max(150, boyut.x * 0.22);
+      harita.flyToBounds(sinir, {
+        maxZoom: 18,
+        paddingTopLeft: [bant.sol + yanPay, bant.ust + Math.max(56, bantYuksekligi * 0.18)],
+        // Altta iki sıra düğme var (köşeler ve varsayımlar).
+        paddingBottomRight: [boyut.x - bant.sag + yanPay, boyut.y - bant.alt + Math.max(110, bantYuksekligi * 0.3)],
+        duration: 0.8,
+      });
     }
     bitti();
   }, [hedef, data, harita, bitti]);
@@ -143,8 +157,8 @@ function Catilar() {
       const id = (ozellik as BinaOzelligi | undefined)?.properties.id;
       const secili = id !== undefined && id === seciliId;
       return {
-        color: secili ? "#0ea5e9" : "#1f2937",
-        weight: secili ? 3 : 0.8,
+        color: secili ? "#ffffff" : "#1c1a17",
+        weight: secili ? 3.5 : 0.8,
         fillColor: catiRengi(id === undefined ? undefined : hesaplar.get(id), renkModu),
         fillOpacity: secili ? 0.85 : 0.7,
       };
@@ -176,7 +190,8 @@ function Catilar() {
         const bina = ozellik as BinaOzelligi;
         katman.on("click", (olay) => {
           L.DomEvent.stopPropagation(olay);
-          binaSec(bina.properties.id);
+          // Haritadan seçilen binaya da yakınlaşılır ve ortalanır (Odaklayici).
+          binaSec(bina.properties.id, true);
         });
       }}
     />
@@ -220,6 +235,7 @@ export default function Harita() {
       <OsbGorunumu />
       <Odaklayici />
       <SecimTemizleyici />
+      <SeciliBinaOdagi />
     </MapContainer>
   );
 }

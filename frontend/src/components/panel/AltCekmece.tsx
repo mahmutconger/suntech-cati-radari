@@ -4,6 +4,7 @@
 // yarım ve tam. Tutamaca dokununca sıradaki duruma geçer; yukarı/aşağı kaydırma da çalışır.
 
 import { useRef, type ReactNode } from "react";
+import { DASH_ZEMINI } from "@/lib/stil";
 import { useHaritaDurumu, type CekmeceDurumu } from "@/store/harita";
 
 const YUKSEKLIK: Record<CekmeceDurumu, string> = {
@@ -26,7 +27,7 @@ export function AltCekmece({ baslik, children }: { baslik: string; children: Rea
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-[1000] flex flex-col rounded-t-3xl border-t border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur transition-[height] duration-300 md:hidden ${YUKSEKLIK[durum]}`}
+      className={`fixed inset-x-0 bottom-0 z-[1000] flex flex-col rounded-t-3xl border-t border-white/80 ${DASH_ZEMINI} shadow-[0_-12px_32px_-12px_rgb(28_26_23/0.3)] transition-[height] duration-300 md:hidden ${YUKSEKLIK[durum]}`}
     >
       <button
         type="button"
@@ -41,10 +42,10 @@ export function AltCekmece({ baslik, children }: { baslik: string; children: Rea
         }}
         className="flex shrink-0 flex-col items-center gap-2 px-4 pb-2 pt-2.5"
       >
-        <span className="h-1.5 w-10 rounded-full bg-slate-600" />
-        <span className="text-sm font-semibold text-slate-100">{baslik}</span>
+        <span className="h-1.5 w-10 rounded-full bg-murekkep/20" />
+        <span className="text-sm font-semibold text-murekkep">{baslik}</span>
       </button>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">{children}</div>
     </div>
   );
 }

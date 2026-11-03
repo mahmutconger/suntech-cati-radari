@@ -1,22 +1,21 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { DashKabugu } from "@/components/ortak/DashKabugu";
 import { KayitlarListesi } from "@/components/oturum/KayitlarListesi";
+import { OturumKapisi } from "@/components/oturum/OturumKapisi";
 
 export const metadata: Metadata = { title: "Kayıtlarım · Çatı Radarı" };
 
 export default function KayitlarimSayfasi() {
   return (
-    <main className="min-h-dvh bg-slate-950 px-4 py-6">
-      <div className="mx-auto max-w-2xl space-y-5">
-        <div>
-          <Link href="/" className="text-xs text-slate-400 hover:text-slate-200">
-            ← Haritaya dön
-          </Link>
-          <h1 className="mt-2 text-2xl font-bold text-slate-50">Kayıtlarım</h1>
-          <p className="text-sm text-slate-400">Kaydettiğiniz analizleri yalnızca siz görürsünüz.</p>
-        </div>
+    <OturumKapisi>
+      <DashKabugu
+        aktif="kayitlarim"
+        ust="Hesabım"
+        baslik="Kayıtlarım"
+        aciklama="Kaydettiğiniz analizleri yalnızca siz görürsünüz; her biri kaydedildiği varsayım ve tüketimle açılır."
+      >
         <KayitlarListesi />
-      </div>
-    </main>
+      </DashKabugu>
+    </OturumKapisi>
   );
 }
