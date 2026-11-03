@@ -112,7 +112,9 @@ export function CatiKarti({ binaId }: { binaId: number }) {
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mercan-koyu">OSM #{bina.id}</p>
             <div className="flex items-center gap-2">
               <h2 className="truncate text-xl font-bold tracking-tight text-murekkep">{binaAdi(bina)}</h2>
-              {typeof hesap?.uygunluk_skoru === "number" && <SkorRozeti skor={hesap.uygunluk_skoru} />}
+              {typeof hesap?.uygunluk_skoru === "number" && !detay?.mevcut_ges && (
+                <SkorRozeti skor={hesap.uygunluk_skoru} />
+              )}
             </div>
             <div className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
               {detay?.verim_kwh_kwp && (
@@ -121,7 +123,12 @@ export function CatiKarti({ binaId }: { binaId: number }) {
                 </span>
               )}
               {detay?.mevcut_ges && (
-                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">Mevcut panel var</span>
+                <span
+                  title="Uydu görüntüsünde ya da OSM'de bu çatıda güneş paneli var; ilk gidilecek listesine alınmaz."
+                  className="rounded-full bg-sky-700 px-2 py-0.5 font-semibold text-white"
+                >
+                  Çatıda GES var
+                </span>
               )}
             </div>
           </div>
