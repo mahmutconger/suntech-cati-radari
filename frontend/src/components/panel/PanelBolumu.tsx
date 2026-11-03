@@ -25,7 +25,7 @@ export function PanelBolumu({ ad, children, className = "" }: { ad: PanelBolumAd
     <div
       ref={ref}
       id={`bolum-${ad}`}
-      className={`relative scroll-mt-4 rounded-2xl transition-[outline-color,box-shadow] ${
+      className={`relative scroll-mt-20 rounded-2xl transition-[outline-color,box-shadow] ${
         hedef
           ? "ring-2 ring-seftali ring-offset-2 ring-offset-zemin"
           : ilgili

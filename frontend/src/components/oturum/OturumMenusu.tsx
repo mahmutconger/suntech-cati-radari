@@ -39,8 +39,12 @@ export function OturumMenusu() {
         <span className="flex aspect-square h-full items-center justify-center rounded-full bg-gradient-to-br from-limon to-seftali">
           <UserRound className="h-5 w-5" strokeWidth={2.2} aria-hidden />
         </span>
-        <span className={`pr-1 text-sm font-semibold ${BASLIK_ETIKETI}`}>Profil</span>
-        <ChevronDown className={`mr-2 hidden h-4 w-4 text-murekkep/55 transition-transform 2xl:block ${acik ? "rotate-180" : ""}`} aria-hidden />
+        <span className={BASLIK_ETIKETI}>
+          <span className="flex items-center gap-2 pr-2 text-sm font-semibold">
+            Profil
+            <ChevronDown className={`h-4 w-4 text-murekkep/55 transition-transform ${acik ? "rotate-180" : ""}`} aria-hidden />
+          </span>
+        </span>
       </button>
       {acik && (
         <div role="menu" className="cam absolute right-0 top-full z-[1200] mt-2 w-64 overflow-hidden rounded-2xl text-sm">

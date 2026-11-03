@@ -1,7 +1,7 @@
 // Arayüz durumu (Zustand). Sunucu verisi burada tutulmaz; o TanStack Query'de.
 
 import { create } from "zustand";
-import type { Bolum } from "@/lib/bolumler";
+import { BOLUM_SEKMESI, type Bolum, type CatiSekmesi, type OsbSekmesi } from "@/lib/bolumler";
 import { VARSAYILAN_VARSAYIMLAR, type KatmanTuru } from "@/lib/sabitler";
 import type { Tuketim, Varsayimlar } from "@/types/gecici";
 
@@ -35,6 +35,15 @@ interface HaritaDurumu {
    * aynı düğmeye yeniden basınca panel yine o bölüme kayar ve vurgu tekrar oynar.
    */
   odak: { bolum: Bolum; sayac: number } | null;
+  /** Masaüstü yan panel geniş mi (çentik düğmesi). */
+  panelGenis: boolean;
+  /**
+   * Başlık düğmeleri yalnızca ikon mu. Panel genişlerken hemen, daralırken panel animasyonu bitince
+   * kapanır; böylece yazılar ve tek satır düzeni, başlığa yer açılmadan geri gelmez.
+   */
+  baslikDar: boolean;
+  catiSekmesi: CatiSekmesi;
+  osbSekmesi: OsbSekmesi;
 
   osbSec: (osb: string) => void;
   binaSec: (id: number | null, odaklan?: boolean) => void;
@@ -51,7 +60,14 @@ interface HaritaDurumu {
   trafoKatmaniAyarla: (acik: boolean) => void;
   /** Paneli ilgili bölüme kaydırır; telefonda çekmeceyi tam açar. */
   bolumeGit: (bolum: Bolum) => void;
+  panelGenisAyarla: (genis: boolean) => void;
+  catiSekmesiSec: (sekme: CatiSekmesi) => void;
+  osbSekmesiSec: (sekme: OsbSekmesi) => void;
 }
+
+/** Panelin genişleme/daralma süresi (globals.css'teki --panel-gecis ile aynı). */
+export const PANEL_GECIS_MS = 520;
+let baslikZamanlayici: ReturnType<typeof setTimeout> | undefined;
 
 /** Yalnızca `ornek`te olan anahtarları tutar. */
 function suz(kaynak: Partial<Varsayimlar>, ornek: Varsayimlar): Partial<Varsayimlar> {
@@ -73,6 +89,10 @@ export const useHaritaDurumu = create<HaritaDurumu>((set) => ({
   sohbetAcik: false,
   trafoKatmani: false,
   odak: null,
+  panelGenis: false,
+  baslikDar: false,
+  catiSekmesi: "ozet",
+  osbSekmesi: "ozet",
 
   osbSec: (seciliOsb) =>
     set({ seciliOsb, seciliBinaId: null, odaklanilacakBinaId: null, cekmece: "kapali", odak: null }),
@@ -110,5 +130,23 @@ export const useHaritaDurumu = create<HaritaDurumu>((set) => ({
     }),
   sohbetAyarla: (sohbetAcik) => set({ sohbetAcik }),
   trafoKatmaniAyarla: (trafoKatmani) => set({ trafoKatmani }),
-  bolumeGit: (bolum) => set((d) => ({ odak: { bolum, sayac: (d.odak?.sayac ?? 0) + 1 }, cekmece: "tam" })),
+  bolumeGit: (bolum) =>
+    set((d) => ({
+      odak: { bolum, sayac: (d.odak?.sayac ?? 0) + 1 },
+      catiSekmesi: BOLUM_SEKMESI[bolum],
+      cekmece: "tam",
+    })),
+  panelGenisAyarla: (panelGenis) => {
+    clearTimeout(baslikZamanlayici);
+    if (panelGenis) {
+      set({ panelGenis, baslikDar: true });
+      return;
+    }
+    set({ panelGenis });
+    baslikZamanlayici = setTimeout(() => {
+      if (!useHaritaDurumu.getState().panelGenis) set({ baslikDar: false });
+    }, PANEL_GECIS_MS);
+  },
+  catiSekmesiSec: (catiSekmesi) => set({ catiSekmesi }),
+  osbSekmesiSec: (osbSekmesi) => set({ osbSekmesi }),
 }));
