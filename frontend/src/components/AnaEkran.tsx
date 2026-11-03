@@ -6,6 +6,7 @@
 import { AramaCubugu } from "@/components/arama/AramaCubugu";
 import { KatmanSecici, Lejant } from "@/components/harita/HaritaKontrolleri";
 import { HaritaYukleyici } from "@/components/harita/HaritaYukleyici";
+import { OturumMenusu } from "@/components/oturum/OturumMenusu";
 import { AltCekmece } from "@/components/panel/AltCekmece";
 import { PanelIcerigi } from "@/components/panel/PanelIcerigi";
 import { SohbetKutusu } from "@/components/sohbet/SohbetKutusu";
@@ -29,8 +30,9 @@ export function AnaEkran() {
           <span aria-hidden className="text-base">☀️</span>
           <span className="text-sm font-bold tracking-tight text-amber-300">Çatı Radarı</span>
         </div>
-        <div className="pointer-events-auto order-2 ml-auto md:order-3 md:ml-0">
+        <div className="pointer-events-auto order-2 ml-auto flex items-center gap-2 md:order-3 md:ml-0">
           <KatmanSecici />
+          <OturumMenusu />
         </div>
         <div className="pointer-events-auto order-3 w-full md:order-2 md:max-w-md">
           <AramaCubugu />
