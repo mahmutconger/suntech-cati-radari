@@ -101,12 +101,14 @@ function yerelYillikNakitAkisiHesapla(
 export interface YirmiBesYillikGrafikProps {
   veriler: YillikNakitAkisiSatiri[];
   yukseklikSinifi?: string;
+  baslikEki?: string;
 }
 
 /** 25 yıllık kümülatif nakit akışı grafiği (SimulasyonPaneli ve PDF rapor sayfası için). */
 export function YirmiBesYillikGrafik({
   veriler,
   yukseklikSinifi = "h-52",
+  baslikEki,
 }: YirmiBesYillikGrafikProps) {
   if (!veriler.length) return null;
 
@@ -118,6 +120,11 @@ export function YirmiBesYillikGrafik({
       <div className="flex items-center justify-between gap-2 text-[11px]">
         <span className="font-medium text-murekkep">
           25 yıllık kümülatif nakit akışı
+          {baslikEki && (
+            <span className="ml-1 text-[10px] font-normal text-emerald-800">
+              ({baslikEki})
+            </span>
+          )}
         </span>
         <span className="text-emerald-700 font-semibold">
           25Y Net: {tl(sonYil.kumulatif_tl)}
@@ -311,20 +318,29 @@ export function SimulasyonPaneli({
   });
 
   const nakitAkisi25Yil = useMemo(() => {
-    if (finansAkislari && finansAkislari.length > 0) {
+    if (!s) return [];
+    const pilAktif = Boolean(s.pil && s.pil.kapasite_kwh > 0);
+
+    // Batarya seçilmemişse ve backend resmi finans serisi geldiyse onu kullan
+    if (!pilAktif && finansAkislari && finansAkislari.length > 0) {
       return finansAkislari;
     }
-    if (!s) return [];
-    const etkinYatirim =
-      s.pil && s.pil.kapasite_kwh > 0 ? s.pil.toplam_yatirim_tl : s.yatirim_tl;
-    const etkinTasarruf =
-      s.pil && s.pil.kapasite_kwh > 0 ? s.pil.toplam_tasarruf_tl : s.tasarruf_tl;
+
+    // Batarya seçildiyse (veya finans akışı henüz yüklenmediyse), bataryalı birleşik nakit akışını ve
+    // kullanıcının güncel varsayımlarını (ömür, degradasyon, bakım, tarife artışı) kullanarak hesapla
+    const etkinYatirim = pilAktif ? s.pil!.toplam_yatirim_tl : s.yatirim_tl;
+    const etkinTasarruf = pilAktif ? s.pil!.toplam_tasarruf_tl : s.tasarruf_tl;
+
     return yerelYillikNakitAkisiHesapla(
       s.uretim_mwh,
       etkinTasarruf,
       etkinYatirim,
+      varsayimlar.omur_yil ?? 25,
+      varsayimlar.degradasyon ?? 0.005,
+      varsayimlar.bakim_orani ?? 0.01,
+      varsayimlar.tarife_artisi ?? 0.0,
     );
-  }, [finansAkislari, s]);
+  }, [finansAkislari, s, varsayimlar]);
 
   const maxPilKwh = s ? Math.max(500, Math.min(5000, Math.round(s.kwp * 2))) : 2000;
 
@@ -477,7 +493,14 @@ export function SimulasyonPaneli({
 
               {/* 2.5. 25 Yıllık Kümülatif Nakit Akışı Grafiği (PROJE.md §22.3) */}
               <PanelBolumu ad="nakit">
-                <YirmiBesYillikGrafik veriler={nakitAkisi25Yil} />
+                <YirmiBesYillikGrafik
+                  veriler={nakitAkisi25Yil}
+                  baslikEki={
+                    s.pil && s.pil.kapasite_kwh > 0
+                      ? `GES + ${sayi(s.pil.kapasite_kwh)} kWh Pil`
+                      : undefined
+                  }
+                />
               </PanelBolumu>
 
               {/* 3. Pil (Batarya) Depolama */}
