@@ -19,11 +19,12 @@ def osb_var_mi(osb: str) -> bool:
 
 
 def osb_listesi() -> list[dict]:
-    """Bina sayısı çoktan aza; Firestore'daki parçalar GeoJSON MultiPolygon'a çevrilir."""
-    def geojson(o: dict) -> dict:
-        halkalar = [[[[p["lon"], p["lat"]] for p in parca["noktalar"]]] for parca in o["sinir"]]
-        return {"type": "MultiPolygon", "coordinates": halkalar}
-    return sorted((o | {"sinir": geojson(o)} for o in osblar()), key=lambda o: -o["bina_sayisi"])
+    """Bina sayısı çoktan aza. sinir: en büyük parçanın [{lon, lat}] halkası (§22.1); sinir_geojson: bütün parçalar."""
+    def disari(o: dict) -> dict:
+        parcalar = [parca["noktalar"] for parca in o["sinir"]]
+        geojson = {"type": "MultiPolygon", "coordinates": [[[[p["lon"], p["lat"]] for p in h]] for h in parcalar]}
+        return o | {"sinir": max(parcalar, key=len), "sinir_geojson": geojson}
+    return sorted((disari(o) for o in osblar()), key=lambda o: -o["bina_sayisi"])
 
 
 def cokgen(b: dict) -> dict:

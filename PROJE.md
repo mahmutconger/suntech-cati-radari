@@ -721,7 +721,7 @@ Dört özellik ekleniyor: **diğer Manisa OSB'leri**, **25 yıllık finans**, **
 
 - `binalar` dokümanlarına `osb` (`"manisa"`, `"muradiye"`, `"salihli"`) ve `trafo_mesafe_km` alanları eklendi. `osb` alanı olmayan kayıt `"manisa"` sayılır.
 - `trafo_merkezleri` dokümanlarında `osblar` listesi var: Manisa ile Muradiye OSB komşu, aynı trafolar ikisinde de görünür.
-- Yeni koleksiyon `osblar`: `{id, ad, merkez{lat,lon}, sinir_kutusu{guney,bati,kuzey,dogu}, sinir[{noktalar[{lon,lat}]}], bina_sayisi, osm}`. API `sinir`'i GeoJSON `MultiPolygon` olarak döner (Leaflet'te doğrudan `L.geoJSON`).
+- Yeni koleksiyon `osblar`: `{id, ad, merkez{lat,lon}, sinir_kutusu{guney,bati,kuzey,dogu}, sinir[{noktalar[{lon,lat}]}], bina_sayisi, osm}`. API `sinir`'i en büyük parçanın `[{lon,lat}]` halkası olarak, bütün parçaları da `sinir_geojson` (GeoJSON `MultiPolygon`) olarak döner.
 - **Yüklü OSB'ler (3 Kasım):** Manisa OSB 396 bina, Muradiye OSB 256, Salihli OSB 11. Yalnızca OSM'de sınırı "Organize Sanayi Bölgesi" olarak çizili olanlar alındı. Akhisar, Turgutlu ve Alaşehir OSB'lerinin OSM'de sınırı yok; Soma OSB'nin sınırı var ama içinde 1.000 m² üstü bina çizilmemiş. Yeni OSB `backend/scripts/veri_yukle.py`'deki `OSBLAR`'a eklenir, sonra üç betik `--osb <id>` ile çalışır.
 
 **API**
