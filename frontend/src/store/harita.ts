@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { VARSAYILAN_VARSAYIMLAR, type KatmanTuru } from "@/lib/sabitler";
-import type { Varsayimlar } from "@/types/gecici";
+import type { Tuketim, Varsayimlar } from "@/types/gecici";
 
 export type CekmeceDurumu = "kapali" | "yarim" | "tam";
 
@@ -13,6 +13,9 @@ interface HaritaDurumu {
   varsayimlar: Varsayimlar;
   /** Haritanın uçacağı bina; arama ya da listeden seçimde dolar, harita uçunca temizlenir. */
   odaklanilacakBinaId: number | null;
+  /** Firmanın bina başına girdiği yıllık tüketim. */
+  tuketimler: Record<number, Tuketim>;
+  sohbetAcik: boolean;
 
   binaSec: (id: number | null, odaklan?: boolean) => void;
   odaklanmaBitti: () => void;
@@ -20,6 +23,8 @@ interface HaritaDurumu {
   cekmeceAyarla: (durum: CekmeceDurumu) => void;
   varsayimGuncelle: (degisiklik: Partial<Varsayimlar>) => void;
   varsayimlariSifirla: () => void;
+  tuketimAyarla: (binaId: number, tuketim: Tuketim | null) => void;
+  sohbetAyarla: (acik: boolean) => void;
 }
 
 export const useHaritaDurumu = create<HaritaDurumu>((set) => ({
@@ -28,6 +33,8 @@ export const useHaritaDurumu = create<HaritaDurumu>((set) => ({
   cekmece: "kapali",
   varsayimlar: VARSAYILAN_VARSAYIMLAR,
   odaklanilacakBinaId: null,
+  tuketimler: {},
+  sohbetAcik: false,
 
   binaSec: (id, odaklan = false) =>
     set({
@@ -40,4 +47,12 @@ export const useHaritaDurumu = create<HaritaDurumu>((set) => ({
   cekmeceAyarla: (cekmece) => set({ cekmece }),
   varsayimGuncelle: (degisiklik) => set((d) => ({ varsayimlar: { ...d.varsayimlar, ...degisiklik } })),
   varsayimlariSifirla: () => set({ varsayimlar: VARSAYILAN_VARSAYIMLAR }),
+  tuketimAyarla: (binaId, tuketim) =>
+    set((d) => {
+      const tuketimler = { ...d.tuketimler };
+      if (tuketim) tuketimler[binaId] = tuketim;
+      else delete tuketimler[binaId];
+      return { tuketimler };
+    }),
+  sohbetAyarla: (sohbetAcik) => set({ sohbetAcik }),
 }));

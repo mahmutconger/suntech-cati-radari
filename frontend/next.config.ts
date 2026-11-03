@@ -5,8 +5,9 @@ import type { NextConfig } from "next";
 const API_BASE_URL = process.env.API_BASE_URL?.replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
-  cacheComponents: true,
-  partialPrefetching: true,
+  // Cache Components kapalı: açıkken Next.js sayfadan çıkınca haritayı <Activity> ile gizleyip
+  // geri getiriyor; Leaflet haritası bunu desteklemiyor ve "Map container is being reused" hatası veriyor.
+  // Uygulama zaten istemci tarafında çalıştığı için bu özelliğe ihtiyacımız yok.
   turbopack: {
     rules: {
       "*.css": {
