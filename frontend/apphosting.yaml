@@ -7,24 +7,24 @@ runConfig:
 env:
   # FastAPI'nin Cloud Run adresi; next.config.ts /api/v1 isteklerini buraya yönlendirir.
   - variable: API_BASE_URL
-    value: https://BACKEND-CLOUD-RUN-ADRESI
+    value: https://suntech-backend-338282009641.europe-west3.run.app
     availability: [BUILD, RUNTIME]
 
   # Gerçek backend hazır olunca 0 yapılır.
   - variable: NEXT_PUBLIC_SAHTE_VERI
-    value: "1"
+    value: "0"
     availability: [BUILD, RUNTIME]
 
   # Firebase web ayarları (gizli değil).
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: ""
+    value: AIzaSyA4iFF-j6pb-u8Ezb5HDL91ln6Wyh7qYHE
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: ""
+    value: suntech-cati-radari.firebaseapp.com
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: ""
+    value: suntech-cati-radari
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: ""
+    value: "1:338282009641:web:70d719409a8339479b7838"
     availability: [BUILD, RUNTIME]
