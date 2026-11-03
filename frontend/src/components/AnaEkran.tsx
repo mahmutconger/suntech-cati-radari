@@ -25,7 +25,7 @@ export function AnaEkran() {
       </div>
 
       {/* Üst çubuk: telefonda logo + katman üstte, arama altta; masaüstünde tek satır */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-wrap items-center gap-2 p-3 md:right-[400px] md:flex-nowrap md:p-4">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-wrap items-center gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:right-[400px] md:flex-nowrap md:p-4">
         <div className="pointer-events-auto order-1 flex items-center gap-2 rounded-full bg-slate-900/85 px-3 py-2 shadow-lg backdrop-blur">
           <span aria-hidden className="text-base">☀️</span>
           <span className="hidden text-sm font-bold tracking-tight text-amber-300 min-[400px]:inline">Çatı Radarı</span>
