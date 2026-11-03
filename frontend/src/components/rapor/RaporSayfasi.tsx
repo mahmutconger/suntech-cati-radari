@@ -12,7 +12,7 @@ import {
   useBinaDetay,
   useBinaHesabi,
   useFinans,
-  useSeciliOsb,
+  useOsblar,
   useUyduOnbellegi,
   uyduGoruntuAdresi,
 } from "@/hooks/veri";
@@ -97,7 +97,8 @@ function UyduGorseli({ binaId, geometri }: { binaId: number; geometri: CokgenGeo
 export function RaporSayfasi({ binaId }: { binaId: number }) {
   const tuketim = useHaritaDurumu((d) => d.tuketimler[binaId] ?? null);
   const varsayimlar = useHaritaDurumu((d) => d.varsayimlar);
-  const osb = useSeciliOsb();
+  const seciliOsb = useHaritaDurumu((d) => d.seciliOsb);
+  const { data: osblar } = useOsblar();
   const { data: detay, isError: detayHatasi } = useBinaDetay(Number.isFinite(binaId) ? binaId : null);
   const { data: hesap } = useBinaHesabi(Number.isFinite(binaId) ? binaId : null, tuketim);
   const { data: yillar } = useFinans(Number.isFinite(binaId) ? binaId : null, tuketim);
@@ -105,6 +106,9 @@ export function RaporSayfasi({ binaId }: { binaId: number }) {
   const [bugun] = useState(() => tarihBicimi.format(new Date()));
 
   const ad = detay ? binaAdi(detay) : `Bina #${binaId}`;
+  // OSB adı binanın kendi osb alanından (GET /binalar/{id}); rapor doğrudan açılınca da doğru olsun.
+  const osbId = detay?.osb ?? seciliOsb;
+  const osbAdi = osblar?.find((o) => o.id === osbId)?.ad ?? (osbId === "manisa" ? "Manisa OSB" : osbId);
   useEffect(() => {
     // Yazdırma penceresinde PDF dosyasının adı başlıktan gelir.
     document.title = `Çatı Radarı ön fizibilite - ${ad}`;
@@ -136,7 +140,7 @@ export function RaporSayfasi({ binaId }: { binaId: number }) {
             <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">☀️ Çatı Radarı · Ön fizibilite raporu</p>
             <h1 className="mt-1 text-2xl font-bold">{ad}</h1>
             <p className="text-xs text-slate-500">
-              {osb?.ad ?? "Manisa OSB"} · OSM #{binaId}
+              {osbAdi} · OSM #{binaId}
               {detay && ` · ${alan(detay.alan_m2)} çatı`}
             </p>
           </div>
@@ -177,7 +181,7 @@ export function RaporSayfasi({ binaId }: { binaId: number }) {
                     En yakın trafo: {detay.en_yakin_trafo.ad || "adsız"}, {sayi(detay.en_yakin_trafo.mesafe_km, 1)} km
                   </p>
                 )}
-                <p>OSM&apos;de kayıtlı panel: {detay.mevcut_ges ? "var" : "yok"}</p>
+                <p>Mevcut panel: {detay.mevcut_ges ? "var" : "yok"}</p>
                 {tuketim && <p>Firmanın yıllık tüketimi: {sayi(tuketim.yillik_kwh / 1000)} MWh</p>}
               </div>
             )}

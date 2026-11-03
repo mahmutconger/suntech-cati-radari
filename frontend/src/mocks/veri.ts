@@ -163,6 +163,7 @@ function binaUret(t: SahteOsbTanimi): BinaKoleksiyonu {
         ad: r() > 0.35 ? `Sahte ${kisaAd} Fabrika ${n + 1}` : "",
         alan_m2: alanM2,
         merkez: [lon, lat],
+        osb: t.id,
       },
     });
   }

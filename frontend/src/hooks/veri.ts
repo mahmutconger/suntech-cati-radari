@@ -258,7 +258,14 @@ export function useUyduKontrolu(binaId: number) {
   const { data: onbellek } = useUyduOnbellegi(binaId);
   const mutasyon = useMutation({
     mutationFn: () => (SAHTE_VERI ? bekle(sahteUydu(binaId), 1500) : api.post<UyduSonucu>(`/uydu/${binaId}`)),
-    onSuccess: (sonuc) => istemci.setQueryData(["uydu", binaId], sonuc),
+    onSuccess: (sonuc) => {
+      istemci.setQueryData(["uydu", binaId], sonuc);
+      // "Panel var" sonucu backend'de binanın mevcut_ges alanını günceller (§22.2): detay ve skor yenilensin.
+      if (sonuc.panel === "var" && !SAHTE_VERI) {
+        void istemci.invalidateQueries({ queryKey: ["bina", binaId] });
+        void istemci.invalidateQueries({ queryKey: ["hesap"] });
+      }
+    },
   });
   return { ...mutasyon, sonuc: mutasyon.data ?? onbellek ?? undefined };
 }
