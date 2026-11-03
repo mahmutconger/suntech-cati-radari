@@ -26,3 +26,13 @@ def binalar() -> list[dict]:
 
 def trafolar() -> list[dict]:
     return _koleksiyon("trafo_merkezleri")
+
+
+class HesapDeposu:
+    """Mehmet'in hesap use case'lerinin beklediği BinaDeposu; aynı önbelleği kullanır."""
+
+    def hepsi(self) -> list[dict]:
+        return binalar()
+
+    def getir(self, bina_id: int) -> dict | None:
+        return next((b for b in binalar() if b["osm_id"] == bina_id), None)

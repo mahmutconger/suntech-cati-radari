@@ -59,7 +59,8 @@ async def _veritabani_hatasi(_: Request, exc: VeritabaniHatasi) -> JSONResponse:
 async def _dogrulama_hatasi(_: Request, exc: RequestValidationError) -> JSONResponse:
     ilk = exc.errors()[0]
     alan = ".".join(str(p) for p in ilk["loc"][1:])
-    return JSONResponse({"hata": {"kod": "gecersiz_istek", "mesaj": f"{alan}: {ilk['msg']}"}}, status_code=422)
+    mesaj = f"{alan}: {ilk['msg']}" if alan else ilk["msg"]
+    return JSONResponse({"hata": {"kod": "gecersiz_istek", "mesaj": mesaj}}, status_code=422)
 
 
 def _register_routers() -> None:
