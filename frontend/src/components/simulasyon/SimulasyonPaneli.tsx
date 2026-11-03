@@ -1,17 +1,18 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
   CartesianGrid,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { api } from "@/lib/api";
+import { api, SAHTE_VERI } from "@/lib/api";
 import { sayi, tl } from "@/lib/bicim";
 import { useHaritaDurumu } from "@/store/harita";
 import type { components } from "@/types/api";
@@ -27,6 +28,15 @@ export type SebekeSonucu = Sema["SebekeSonucuDto"];
 export type SaatlikGunProfili = Sema["SaatlikGunProfiliDto"];
 export type VardiyaTipi = NonNullable<SimulasyonIstegi["vardiya"]>;
 
+export interface YillikNakitAkisiSatiri {
+  yil: number;
+  uretim_mwh: number;
+  tasarruf_tl: number;
+  bakim_tl: number;
+  net_akis_tl: number;
+  kumulatif_tl: number;
+}
+
 export interface SimulasyonPaneliProps {
   binaId?: number;
   alanM2?: number;
@@ -39,17 +49,155 @@ const VARDIYALAR: { kod: VardiyaTipi; etiket: string; saatler: string }[] = [
   { kod: "uc", etiket: "Üç vardiya", saatler: "7/24 kesintisiz" },
 ];
 
+/** Değer değişimi durduktan `ms` sonra güncellenir; sürükleme sırasında her milisaniyede istek atılmasını engeller. */
+function useGeciktirilmisDeger<T>(deger: T, ms = 450): T {
+  const [gecikmeli, setGecikmeli] = useState<T>(deger);
+  useEffect(() => {
+    const zamanlayici = setTimeout(() => setGecikmeli(deger), ms);
+    return () => clearTimeout(zamanlayici);
+  }, [deger, ms]);
+  return gecikmeli;
+}
+
+/** 25 yıllık nakit akışı dizisini deterministik formülle üretir (API yedek/önizleme için). */
+function yerelYillikNakitAkisiHesapla(
+  ilkYilUretimMwh: number,
+  ilkYilTasarrufTl: number,
+  yatirimTl: number,
+  omurYil = 25,
+  degradasyon = 0.005,
+  bakimOrani = 0.01,
+  tarifeArtisi = 0.0,
+): YillikNakitAkisiSatiri[] {
+  if (ilkYilUretimMwh <= 0 || yatirimTl <= 0) return [];
+  const satirlar: YillikNakitAkisiSatiri[] = [];
+  const bakimYillik = yatirimTl * bakimOrani;
+  let kumulatif = -yatirimTl;
+
+  for (let yil = 1; yil <= omurYil; yil++) {
+    const yaslanma = Math.pow(1 - degradasyon, yil - 1);
+    const tarifeCarpan = Math.pow(1 + tarifeArtisi, yil - 1);
+    const uretim_mwh = Math.round(ilkYilUretimMwh * yaslanma * 100) / 100;
+    const tasarruf_tl = Math.round(ilkYilTasarrufTl * yaslanma * tarifeCarpan);
+    const bakim_tl = Math.round(bakimYillik);
+    const net_akis_tl = tasarruf_tl - bakim_tl;
+    kumulatif += net_akis_tl;
+    satirlar.push({
+      yil,
+      uretim_mwh,
+      tasarruf_tl,
+      bakim_tl,
+      net_akis_tl,
+      kumulatif_tl: Math.round(kumulatif),
+    });
+  }
+  return satirlar;
+}
+
+export interface YirmiBesYillikGrafikProps {
+  veriler: YillikNakitAkisiSatiri[];
+  yukseklikSinifi?: string;
+}
+
+/** 25 yıllık kümülatif nakit akışı grafiği (SimulasyonPaneli ve PDF rapor sayfası için). */
+export function YirmiBesYillikGrafik({
+  veriler,
+  yukseklikSinifi = "h-40",
+}: YirmiBesYillikGrafikProps) {
+  if (!veriler.length) return null;
+
+  const sonYil = veriler[veriler.length - 1];
+  const basaBasYili = veriler.find((v) => v.kumulatif_tl >= 0)?.yil ?? null;
+
+  return (
+    <div className="space-y-1.5 rounded-xl bg-slate-900/70 p-3">
+      <div className="flex items-center justify-between gap-2 text-[11px]">
+        <span className="font-medium text-slate-200">
+          25 yıllık kümülatif nakit akışı
+        </span>
+        <span className="text-emerald-300 font-semibold">
+          25Y Net: {tl(sonYil.kumulatif_tl)}
+        </span>
+      </div>
+      <div className={`${yukseklikSinifi} w-full`}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={veriler}
+            margin={{ top: 6, right: 6, left: -14, bottom: 0 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(255,255,255,0.06)"
+            />
+            <XAxis
+              dataKey="yil"
+              tickFormatter={(v) => `${v}.y`}
+              stroke="#64748b"
+              fontSize={10}
+              interval={4}
+            />
+            <YAxis
+              stroke="#64748b"
+              fontSize={10}
+              tickFormatter={(v) => `${Math.round(Number(v) / 1_000_000)}M`}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "#0f172a",
+                borderColor: "rgba(255,255,255,0.12)",
+                borderRadius: "0.75rem",
+                fontSize: "11px",
+              }}
+              labelFormatter={(yil) => `${yil}. Yıl (%0,5/yıl yaşlanma, %1 bakım)`}
+              formatter={(deger, ad) => [tl(Number(deger)), String(ad)]}
+            />
+            <ReferenceLine
+              y={0}
+              stroke="rgba(255,255,255,0.28)"
+              strokeDasharray="3 3"
+            />
+            <Area
+              type="monotone"
+              dataKey="kumulatif_tl"
+              name="Kümülatif net nakit akışı"
+              stroke="#34d399"
+              fill="rgba(52, 211, 153, 0.22)"
+              strokeWidth={2}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex items-center justify-between pt-0.5 text-[10px] text-slate-400">
+        <span>
+          Başabaş yılı:{" "}
+          <strong className="text-slate-200">
+            {basaBasYili !== null ? `${basaBasYili}. yıl` : ">25 yıl"}
+          </strong>
+        </span>
+        <span>%0,5/yıl degradasyon · %1/yıl bakım düşülmüş</span>
+      </div>
+    </div>
+  );
+}
+
 export function SimulasyonPaneli({
   binaId = 0,
   yillikTuketimKwh = null,
 }: SimulasyonPaneliProps) {
-  const varsayimlar = useHaritaDurumu((d) => d.varsayimlar);
+  const hamVarsayimlar = useHaritaDurumu((d) => d.varsayimlar);
+  const varsayimlar = useGeciktirilmisDeger(hamVarsayimlar, 450);
+  const gecikmeliTuketimKwh = useGeciktirilmisDeger(yillikTuketimKwh, 450);
 
   const [acik, setAcik] = useState(true);
   const [vardiya, setVardiya] = useState<VardiyaTipi>("iki");
+
+  // Pil kaydırıcısı: sürüklerken yalnızca ekrandaki sayı değişir, bırakınca (onPointerUp/onKeyUp) istek tetiklenir
+  const [pilGorunenKwh, setPilGorunenKwh] = useState<number>(0);
   const [pilKapasiteKwh, setPilKapasiteKwh] = useState<number>(0);
+
   const [sebekeyeVermeden, setSebekeyeVermeden] = useState<boolean>(false);
   const [trafoKapasiteMwMetin, setTrafoKapasiteMwMetin] = useState<string>("");
+  const gecikmeliTrafoMetin = useGeciktirilmisDeger(trafoKapasiteMwMetin, 450);
 
   const [krediAcik, setKrediAcik] = useState<boolean>(false);
   const [aylikFaizYuzde, setAylikFaizYuzde] = useState<number>(2.5);
@@ -58,17 +206,17 @@ export function SimulasyonPaneli({
   const [statikAcik, setStatikAcik] = useState<boolean>(false);
 
   const trafoKalanKapasiteMw = useMemo(() => {
-    const temiz = trafoKapasiteMwMetin.trim().replace(",", ".");
+    const temiz = gecikmeliTrafoMetin.trim().replace(",", ".");
     if (!temiz) return null;
     const n = Number(temiz);
     return Number.isFinite(n) && n >= 0 ? n : null;
-  }, [trafoKapasiteMwMetin]);
+  }, [gecikmeliTrafoMetin]);
 
-  const istekGovdesi: SimulasyonIstegi = useMemo(
+  const hamIstekGovdesi: SimulasyonIstegi = useMemo(
     () => ({
       varsayimlar,
       vardiya,
-      yillik_tuketim_kwh: yillikTuketimKwh,
+      yillik_tuketim_kwh: gecikmeliTuketimKwh,
       pil:
         pilKapasiteKwh > 0
           ? {
@@ -93,7 +241,7 @@ export function SimulasyonPaneli({
     [
       varsayimlar,
       vardiya,
-      yillikTuketimKwh,
+      gecikmeliTuketimKwh,
       pilKapasiteKwh,
       krediAcik,
       aylikFaizYuzde,
@@ -103,6 +251,8 @@ export function SimulasyonPaneli({
       trafoKalanKapasiteMw,
     ],
   );
+
+  const istekGovdesi = useGeciktirilmisDeger(hamIstekGovdesi, 300);
 
   const {
     data: s,
@@ -116,6 +266,43 @@ export function SimulasyonPaneli({
     enabled: binaId > 0 && acik,
     placeholderData: keepPreviousData,
   });
+
+  // 25 yıllık nakit akışı sorgusu (`POST /api/v1/hesap/finans/{binaId}`)
+  const { data: finansAkislari } = useQuery({
+    queryKey: ["hesap", "finans", binaId, varsayimlar, gecikmeliTuketimKwh],
+    queryFn: async () => {
+      if (SAHTE_VERI) return null;
+      try {
+        return await api.post<YillikNakitAkisiSatiri[]>(
+          `/hesap/finans/${binaId}`,
+          {
+            varsayimlar,
+            yillik_tuketim_kwh: gecikmeliTuketimKwh,
+          },
+        );
+      } catch {
+        return null;
+      }
+    },
+    enabled: binaId > 0 && acik,
+    placeholderData: keepPreviousData,
+  });
+
+  const nakitAkisi25Yil = useMemo(() => {
+    if (finansAkislari && finansAkislari.length > 0) {
+      return finansAkislari;
+    }
+    if (!s) return [];
+    const etkinYatirim =
+      s.pil && s.pil.kapasite_kwh > 0 ? s.pil.toplam_yatirim_tl : s.yatirim_tl;
+    const etkinTasarruf =
+      s.pil && s.pil.kapasite_kwh > 0 ? s.pil.toplam_tasarruf_tl : s.tasarruf_tl;
+    return yerelYillikNakitAkisiHesapla(
+      s.uretim_mwh,
+      etkinTasarruf,
+      etkinYatirim,
+    );
+  }, [finansAkislari, s]);
 
   const maxPilKwh = s ? Math.max(500, Math.min(5000, Math.round(s.kwp * 2))) : 2000;
 
@@ -132,7 +319,7 @@ export function SimulasyonPaneli({
       >
         <div>
           <span className="text-sm font-semibold text-slate-100">
-            Saatlik Simülasyon · Pil · Kredi · Statik
+            Saatlik Simülasyon · 25Y Finans · Pil · Kredi
           </span>
           {s && (
             <p className="text-[11px] text-slate-400">
@@ -265,6 +452,9 @@ export function SimulasyonPaneli({
                 </div>
               </div>
 
+              {/* 2.5. 25 Yıllık Kümülatif Nakit Akışı Grafiği (PROJE.md §22.3) */}
+              <YirmiBesYillikGrafik veriler={nakitAkisi25Yil} />
+
               {/* 3. Pil (Batarya) Depolama */}
               <div className="space-y-1.5 rounded-xl border border-white/10 bg-white/[0.02] p-3">
                 <div className="flex items-center justify-between">
@@ -272,7 +462,7 @@ export function SimulasyonPaneli({
                     Batarya (pil) kapasitesi (%90 verim)
                   </span>
                   <span className="font-semibold text-amber-300">
-                    {pilKapasiteKwh > 0 ? `${sayi(pilKapasiteKwh)} kWh` : "Yok"}
+                    {pilGorunenKwh > 0 ? `${sayi(pilGorunenKwh)} kWh` : "Yok"}
                   </span>
                 </div>
                 <input
@@ -280,8 +470,12 @@ export function SimulasyonPaneli({
                   min={0}
                   max={maxPilKwh}
                   step={50}
-                  value={pilKapasiteKwh}
-                  onChange={(e) => setPilKapasiteKwh(Number(e.target.value))}
+                  value={pilGorunenKwh}
+                  onChange={(e) => setPilGorunenKwh(Number(e.target.value))}
+                  onPointerUp={() => setPilKapasiteKwh(pilGorunenKwh)}
+                  onMouseUp={() => setPilKapasiteKwh(pilGorunenKwh)}
+                  onTouchEnd={() => setPilKapasiteKwh(pilGorunenKwh)}
+                  onKeyUp={() => setPilKapasiteKwh(pilGorunenKwh)}
                   className="w-full accent-amber-400"
                 />
                 {s.pil && s.pil.kapasite_kwh > 0 && (

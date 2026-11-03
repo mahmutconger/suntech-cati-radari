@@ -1,4 +1,4 @@
-"""Hesap dilimi okuma (sorgu) use case'leri (CQRS + Sonuc deseni, PROJE.md Bölüm 5.3-5.4)."""
+"""Hesap dilimi okuma (sorgu) use case'leri (CQRS + Sonuc deseni, PROJE.md Bölüm 5.3-5.4 ve 22.3)."""
 
 from __future__ import annotations
 
@@ -9,13 +9,16 @@ from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
 
 from app.domain.hesap import (
     SiralamaOlcutu,
+    bina_finans_hesapla,
     bina_hesapla,
     bina_simulasyonu_hesapla,
     binalari_sirala,
+    osb_binalarini_suz,
     toplu_hesapla,
 )
 from app.domain.varliklar import (
     Bina,
+    FinansOzeti,
     HesapSonucu,
     KrediGirdisi,
     OsbOzeti,
@@ -24,6 +27,7 @@ from app.domain.varliklar import (
     SimulasyonSonucu,
     VardiyaTipi,
     Varsayimlar,
+    YillikNakitAkisi,
 )
 from app.domain.varsayilanlar import (
     VARSAYIM_KAYNAKLARI,
@@ -111,6 +115,32 @@ def _merkez_coz(merkez_ham: Any) -> tuple[float, float] | None:
     return None
 
 
+def _trafo_mesafe_coz(kayit: Any) -> float | None:
+    """Kayıttan `trafo_mesafe_km` veya `en_yakin_trafo.mesafe_km` değerini çıkarır."""
+    if isinstance(kayit, dict):
+        dogrudan = kayit.get("trafo_mesafe_km")
+        if dogrudan is not None:
+            try:
+                return float(dogrudan)
+            except (TypeError, ValueError):
+                pass
+        en_yakin = kayit.get("en_yakin_trafo")
+        if isinstance(en_yakin, dict) and en_yakin.get("mesafe_km") is not None:
+            try:
+                return float(en_yakin["mesafe_km"])
+            except (TypeError, ValueError):
+                pass
+        return None
+
+    dogrudan = getattr(kayit, "trafo_mesafe_km", None)
+    if dogrudan is not None:
+        try:
+            return float(dogrudan)
+        except (TypeError, ValueError):
+            pass
+    return None
+
+
 def _bina_nesnesine_cevir(kayit: Any) -> Bina:
     """Depodan gelen nesneyi (Bina, Firestore dict veya model) domain Bina varlığına çevirir."""
     if isinstance(kayit, Bina):
@@ -123,6 +153,8 @@ def _bina_nesnesine_cevir(kayit: Any) -> Bina:
         osm_id = int(kayit["osm_id"]) if kayit.get("osm_id") is not None else bina_id
         ad_ham = kayit.get("ad")
         ad = str(ad_ham).strip() if ad_ham else None
+        osb_ham = kayit.get("osb")
+        osb = str(osb_ham).strip().lower() if osb_ham else "manisa"
         return Bina(
             id=bina_id,
             alan_m2=float(kayit.get("alan_m2", 0.0)),
@@ -132,6 +164,8 @@ def _bina_nesnesine_cevir(kayit: Any) -> Bina:
             merkez=_merkez_coz(kayit.get("merkez")),
             osm_id=osm_id,
             osb_id=None,
+            osb=osb or "manisa",
+            trafo_mesafe_km=_trafo_mesafe_coz(kayit),
         )
 
     ham_id = getattr(kayit, "id", None)
@@ -139,6 +173,8 @@ def _bina_nesnesine_cevir(kayit: Any) -> Bina:
         ham_id = getattr(kayit, "osm_id")
     bina_id = int(ham_id)
     ad_ham = getattr(kayit, "ad", None)
+    osb_ham = getattr(kayit, "osb", None)
+    osb = str(osb_ham).strip().lower() if osb_ham else "manisa"
     return Bina(
         id=bina_id,
         alan_m2=float(getattr(kayit, "alan_m2", 0.0)),
@@ -148,6 +184,8 @@ def _bina_nesnesine_cevir(kayit: Any) -> Bina:
         merkez=_merkez_coz(getattr(kayit, "merkez", None)),
         osm_id=int(getattr(kayit, "osm_id", bina_id) or bina_id),
         osb_id=None,
+        osb=osb or "manisa",
+        trafo_mesafe_km=_trafo_mesafe_coz(kayit),
     )
 
 
@@ -163,13 +201,30 @@ async def _depo_cagir(depo: Any, aday_adlar: tuple[str, ...], *args: Any) -> Any
     raise AttributeError(f"Depoda {aday_adlar} metotlarından hiçbiri bulunamadı.")
 
 
-async def _tum_binalari_al(depo: Any) -> list[Bina]:
-    ham_liste = await _depo_cagir(
-        depo, ("hepsi", "tum_binalar", "listele", "binalari_getir")
-    )
+async def _tum_binalari_al(depo: Any, osb: str | None = None) -> list[Bina]:
+    # Depo `hepsi(osb)` destekliyorsa doğrudan geçir, desteklemiyorsa parametresiz çağırıp süz
+    hepsi_metot = getattr(depo, "hepsi", None)
+    ham_liste: Any = None
+    if callable(hepsi_metot) and osb is not None:
+        try:
+            sig = inspect.signature(hepsi_metot)
+            if len(sig.parameters) >= 1:
+                sonuc = hepsi_metot(osb)
+                ham_liste = await sonuc if inspect.isawaitable(sonuc) else sonuc
+        except (TypeError, ValueError):
+            ham_liste = None
+
+    if ham_liste is None:
+        ham_liste = await _depo_cagir(
+            depo, ("hepsi", "tum_binalar", "listele", "binalari_getir")
+        )
+
     if not ham_liste:
         return []
-    return [_bina_nesnesine_cevir(k) for k in ham_liste]
+    binalar = [_bina_nesnesine_cevir(k) for k in ham_liste]
+    if osb is not None:
+        return osb_binalarini_suz(binalar, osb)
+    return binalar
 
 
 async def _tek_bina_al(depo: Any, bina_id: int) -> Bina | None:
@@ -204,9 +259,11 @@ class TopluHesapSorgusu:
         self._depo = bina_deposu
 
     async def calistir(
-        self, varsayimlar: Varsayimlar | None = None
+        self,
+        varsayimlar: Varsayimlar | None = None,
+        osb: str = "manisa",
     ) -> Sonuc[TopluHesapCiktisi]:
-        binalar = await _tum_binalari_al(self._depo)
+        binalar = await _tum_binalari_al(self._depo, osb=osb)
         sonuclar, ozet = toplu_hesapla(binalar, varsayimlar)
         return Sonuc.tamam(TopluHesapCiktisi(sonuclar=sonuclar, ozet=ozet))
 
@@ -238,6 +295,35 @@ class BinaHesapSorgusu:
             yillik_tuketim_kwh=yillik_tuketim_kwh,
         )
         return Sonuc.tamam(hesap)
+
+
+class FinansSorgusu:
+    """Tek bir bina için 25 yıllık nakit akışı ve finansal özet use case'i (`POST /hesap/finans/{id}`)."""
+
+    def __init__(self, bina_deposu: BinaDeposu) -> None:
+        self._depo = bina_deposu
+
+    async def calistir(
+        self,
+        bina_id: int,
+        varsayimlar: Varsayimlar | None = None,
+        yillik_tuketim_kwh: float | None = None,
+    ) -> Sonuc[list[YillikNakitAkisi]]:
+        if bina_id <= 0:
+            return Sonuc.hatali(
+                "gecersiz", "Bina kimliği pozitif bir tam sayı olmalıdır."
+            )
+
+        bina = await _tek_bina_al(self._depo, bina_id)
+        if bina is None:
+            return Sonuc.hatali("bulunamadi", f"Bina bulunamadı: {bina_id}")
+
+        ozet: FinansOzeti = bina_finans_hesapla(
+            bina=bina,
+            varsayimlar=varsayimlar,
+            yillik_tuketim_kwh=yillik_tuketim_kwh,
+        )
+        return Sonuc.tamam(ozet.yillik_akislar)
 
 
 class SimulasyonSorgusu:
@@ -290,13 +376,14 @@ class SiralamaSorgusu:
         olcut: SiralamaOlcutu = "tasarruf_tl",
         adet: int = 20,
         varsayimlar: Varsayimlar | None = None,
+        osb: str = "manisa",
     ) -> Sonuc[list[HesapSonucu]]:
         if adet <= 0 or adet > 1000:
             return Sonuc.hatali(
                 "gecersiz", "Sıralama adedi 1 ile 1000 arasında olmalıdır."
             )
 
-        binalar = await _tum_binalari_al(self._depo)
+        binalar = await _tum_binalari_al(self._depo, osb=osb)
         sirali = binalari_sirala(
             binalar=binalar,
             varsayimlar=varsayimlar,

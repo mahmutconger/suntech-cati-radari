@@ -3,6 +3,7 @@
 from app.application.hesap.sorgular import (
     BinaDeposu,
     BinaHesapSorgusu,
+    FinansSorgusu,
     Hata,
     SimulasyonSorgusu,
     SiralamaSorgusu,
@@ -16,6 +17,7 @@ from app.application.hesap.sorgular import (
 __all__ = [
     "BinaDeposu",
     "BinaHesapSorgusu",
+    "FinansSorgusu",
     "Hata",
     "SimulasyonSorgusu",
     "SiralamaSorgusu",
